@@ -11,6 +11,10 @@ updated: 2026-11-07
 Android app in `/home/anudeep512/GodsNut/projects/LocalGlasses`, built on the
 [Meta Wearables DAT](/entities/meta-wearables-device-access-toolkit-android-sdk.md).
 
+Repository: **https://github.com/anudeep512/LocalGlasses** (private) — pushed 2026-11-07,
+commit `345072e`, 64 files. A fresh clone builds with `./gradlew :app:assembleDebug` given
+`JAVA_HOME=/opt/android-studio/jbr` and `ANDROID_HOME=$HOME/Android/Sdk`.
+
 Status: **working against real Meta glasses.** Registration, session, live camera feed, photo
 capture, and video recording all run on hardware. Verified on a OnePlus CPH2717 (Android 16)
 with Ray-Ban Meta glasses (`RB Meta 0HD0`): `Session: STARTED`, `Stream: STREAMING`,
