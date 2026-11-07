@@ -2,6 +2,8 @@
 
 ## 2026-11-07
 
+- **retro**: {"category":"security","slug":"key-leak-via-committed-web-captures","title":"API key leak via committed wiki web captures"}
+- **observe**: {"relevance":"high","slug":"obs-2026-11-07-localglasses-pushed-to-github-and-verified-via-clean-clone","title":"LocalGlasses pushed to GitHub and verified via clean clone"}
 - **milestone**: {"fixes":["BLUETOOTH_CONNECT before Wearables.initialize","string-typed DAT manifest meta-data","RequestPermissionContract for DAT CAMERA","planar I420 VideoFrame layout"],"open":["video recording not yet confirmed on real glasses after I420 fix"],"project":"LocalGlasses","removed":["mwdat-mockdevice","mock/MockDevice.kt","mock UI","host CAMERA permission"],"summary":"Real Meta glasses feed working end-to-end on OnePlus CPH2717 + RB Meta 0HD0","verified":["register REGISTERED","session STARTED","stream STREAMING 504x896","photo 1080x1440 saved"]}
 - **retro**: {"category":"android-media","slug":"yuv-h264-mediacodec-mediatek-traps","title":"YUV to H.264 on MediaTek: black frames, JNI segfault, thread safety"}
 - **retro**: {"category":"dat","slug":"dat-bluetooth-and-manifest-typed-metadata","title":"DAT silent registration killers: BT permission order and typed meta-data"}
