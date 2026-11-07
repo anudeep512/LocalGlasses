@@ -67,6 +67,53 @@ app/src/main/java/com/localglasses/app/
 
 ---
 
+## Workflow: brainstorm, then spec, then build
+
+Two tools, nothing else.
+
+**1. Understand the idea — Grill Me**
+
+```
+/grill-me Add offline sync with conflict resolution
+```
+
+Pi reads the project for facts it can answer itself, then asks only what it cannot, in batched
+questionnaire rounds with a recommendation per question. Output: decisions, open questions, risks.
+
+**2. Turn it into a spec and tasks — OpenSpec**
+
+```
+/opsx-propose add-offline-sync
+```
+
+Creates `openspec/changes/add-offline-sync/`:
+
+| File | Contents |
+|---|---|
+| `proposal.md` | why, and what changes |
+| `specs/` | requirements with WHEN/THEN scenarios |
+| `design.md` | technical approach |
+| `tasks.md` | implementation checklist |
+
+**3. Execute and close out**
+
+```
+/opsx-apply      # works tasks.md, 1.1, 1.2, 2.1 …
+/opsx-archive    # moves to changes/archive/, updates living specs
+```
+
+`openspec/specs/` accumulates the project's real behaviour over time; archived changes are the
+history of how it got there.
+
+### Setup notes
+
+- OpenSpec CLI lives at `~/.local/bin/openspec` (v1.16.1). Re-run `openspec update` after
+  upgrading to regenerate the Pi integration.
+- Telemetry is disabled (`openspec config set telemetry.enabled false`).
+- `.pi/skills/openspec-*` and `.pi/prompts/opsx-*` are generated and gitignored; `openspec/` is
+  committed because it is the spec history.
+- `.pi/` resources load only after project trust is granted.
+
 ## Feed source
 
 The only source is **Meta glasses linked to Meta AI on this phone**. There is no mock device
