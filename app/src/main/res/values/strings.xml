@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LocalGlasses</string>
+
+    <!-- DAT app credentials. "0" for Developer Mode builds; replace with the values from
+         Wearables Developer Center for production. Kept as strings so the manifest
+         meta-data stays STRING typed — an integer 0 reads as "not configured". -->
+    <string name="mwdat_application_id">0</string>
+    <string name="mwdat_client_token">0</string>
+</resources>
