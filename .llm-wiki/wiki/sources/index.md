@@ -9,5 +9,6 @@
 - [API key leak via committed wiki web captures](key-leak-via-committed-web-captures.md)
 - [Observation: DAT "no video feed" had two causes: no preview code + no mock camera source](obs-2026-11-07-dat-no-video-feed-had-two-causes-no-preview-code-no-mock-cam.md)
 - [Observation: LocalGlasses now real-glasses-only; mock and phone camera removed](obs-2026-11-07-localglasses-now-real-glasses-only-mock-and-phone-camera-rem.md)
+- [Observation: Workflow set to Grill Me + OpenSpec; cosmetic extensions removed](obs-2026-11-07-workflow-set-to-grill-me-openspec-cosmetic-extensions-remove.md)
 - [Project vault with a personal pointer page](project-vault-plus-personal-pointer.md)
 - [YUV to H.264 on MediaTek: black frames, JNI segfault, thread safety](yuv-h264-mediacodec-mediatek-traps.md)
