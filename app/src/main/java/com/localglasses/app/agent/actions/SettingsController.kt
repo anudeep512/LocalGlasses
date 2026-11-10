@@ -85,8 +85,12 @@ class SettingsController(private val context: Context) {
             return ActionExecution.NeedsPermission(Manifest.permission.WRITE_SETTINGS)
         }
         return runCatching {
-            Settings.System.putInt(context.contentResolver, key, value)
-            ActionExecution.Success(message)
+            val written = Settings.System.putInt(context.contentResolver, key, value)
+            if (written) {
+                ActionExecution.Success(message)
+            } else {
+                ActionExecution.Failed("Settings write was rejected")
+            }
         }.getOrElse { ActionExecution.Failed(it.message ?: "Settings write failed") }
     }
 
