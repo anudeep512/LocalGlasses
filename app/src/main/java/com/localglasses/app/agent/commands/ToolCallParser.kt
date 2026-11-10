@@ -27,6 +27,10 @@ sealed interface RoutingDecision {
 object ToolCallParser {
 
     private val mediaServices = setOf("youtube", "youtube_music")
+    private val settingsPages = setOf(
+        "display", "sound", "wifi", "bluetooth", "battery", "apps",
+        "accessibility", "notification", "location",
+    )
     private val settings = setOf(
         "screen_timeout_seconds",
         "brightness_percent",
@@ -87,7 +91,7 @@ object ToolCallParser {
                 "open_settings_page",
                 args,
                 setOf("page"),
-                "page" to ::nonBlank,
+                "page" to { value -> value?.toString() in settingsPages },
             )
             RouterToolNames.PLAN_UI_TASK -> plan(args)
             else -> RoutingDecision.NoMatch("Unknown tool ${call.name}")

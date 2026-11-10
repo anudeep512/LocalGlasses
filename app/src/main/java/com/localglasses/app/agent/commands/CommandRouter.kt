@@ -56,6 +56,9 @@ class CommandRouter(
             call Amma -> call_contact(contact="Amma")
             change the sleep time to 60 seconds -> set_device_setting(setting="screen_timeout_seconds", value=60)
             play any song by Kanye West -> play_media(query="Kanye West", service="youtube")
+            open WhatsApp -> plan_ui_task(goal="open WhatsApp", app="com.whatsapp")
+            Open an app with plan_ui_task, never with open_settings_page.
+            open_settings_page is only for Android Settings pages such as display or wifi.
             If no tool fits, return no tool call.
         """.trimIndent()
 
