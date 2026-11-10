@@ -38,7 +38,7 @@
 - [x] 4.4 Build `PlanApprovalSheet` with approve, edit, reorder, delete, and cancel, and invalidate approval on every edit. Verify a Compose instrumentation test for edit invalidation and a manual approval of a two-step plan.
 - [x] 4.5 Implement natural-language correction: send the command, current plan, and correction to the planner, replace the pending plan, and require new approval. Verify a unit test with a fake planner.
 - [x] 4.6 Add `ExecutionOverlay` with progress text and a stop button, guarded by `Settings.canDrawOverlays`. Verify on device that the overlay appears over WhatsApp and that stop prevents the next step.
-- [ ] 4.7 Wire phone TTS for approval requests, completions, and failures, with one utterance per event. Verify manually that no token stream or duplicate status is spoken.
+- [x] 4.7 Wire phone TTS for approval requests, completions, and failures, with one utterance per event. Verify manually that no token stream or duplicate status is spoken.
 - [ ] 4.8 Wire the real router to `AgentViewModel` behind a fake engine in tests, covering needs-model, needs-permission, no-match, pending, blocked, success, and failure results. Verify instrumentation tests for each state.
 - [x] 4.9 Document the command-to-approval flow and the "approval is confirmation" rule in `README.md`. Verify the described flow matches the UI.
 
