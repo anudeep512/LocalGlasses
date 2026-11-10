@@ -1,6 +1,7 @@
 package com.localglasses.app.agent.automation
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.view.accessibility.AccessibilityEvent
 
@@ -28,9 +29,12 @@ class AgentAccessibilityService : AccessibilityService() {
         fun isConnected(): Boolean = instance != null
 
         fun isEnabled(context: Context): Boolean {
+            if (instance != null) return true
             val manager = context.getSystemService(android.view.accessibility.AccessibilityManager::class.java)
-            return manager.getEnabledAccessibilityServiceList(0).any {
-                it.resolveInfo.serviceInfo.packageName == context.packageName
+            return manager.getEnabledAccessibilityServiceList(
+                AccessibilityServiceInfo.FEEDBACK_ALL_MASK,
+            ).any {
+                it.resolveInfo?.serviceInfo?.packageName == context.packageName
             }
         }
     }
