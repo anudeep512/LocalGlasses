@@ -128,6 +128,22 @@ would not have the Keystore key that decrypts it, and the 2.5 GB model should no
 Purge deletes traces and screenshots inside the app; files already exported to Downloads are
 left alone.
 
+## First-run checklist
+
+1. Install the debug APK.
+2. Open the Agent tab and download the 2.59 GB model; wait for **Model ready**.
+3. Grant notifications, overlay, and (for UI tasks) Accessibility. For sideloaded builds,
+   enable **Allow restricted settings** in App info before enabling Accessibility.
+4. Grant contacts / call / SMS and Modify system settings as needed.
+5. Optional: grant Usage access and the battery-optimisation exemption.
+6. Type `call 7396512369` and confirm a plan appears; cancel it if you only want to test routing.
+7. Type `change the screen timeout to 60 seconds`, approve, and check the value.
+8. Export traces from Settings and confirm files land in `Download/LocalGlasses/`.
+
+A real uninstall/reinstall was performed with the verified model restored; the first-run
+screen showed **Model not downloaded**, then **Model ready** after restore, and
+`call 7396512369` produced a plan.
+
 ## Verification (2026-11-11)
 
 - `./gradlew test lint assembleDebug` — pass.
