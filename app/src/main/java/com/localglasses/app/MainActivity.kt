@@ -282,6 +282,38 @@ private fun SettingsPlaceholder() {
             ) { Text("Grant modify system settings") }
         }
 
+        var overlayGranted by remember {
+            mutableStateOf(PermissionsCoordinator.overlayGranted(context))
+        }
+        Text(
+            "Display over other apps: ${if (overlayGranted) "granted" else "not granted"}",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        if (!overlayGranted) {
+            OutlinedButton(
+                onClick = {
+                    PermissionsCoordinator.requestOverlay(context)
+                    overlayGranted = PermissionsCoordinator.overlayGranted(context)
+                },
+            ) { Text("Grant display over other apps") }
+        }
+
+        var usageGranted by remember {
+            mutableStateOf(PermissionsCoordinator.usageAccessGranted(context))
+        }
+        Text(
+            "Usage access: ${if (usageGranted) "granted" else "not granted"}",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        if (!usageGranted) {
+            OutlinedButton(
+                onClick = {
+                    PermissionsCoordinator.requestUsageAccess(context)
+                    usageGranted = PermissionsCoordinator.usageAccessGranted(context)
+                },
+            ) { Text("Grant usage access") }
+        }
+
         val devicePermissions = listOf(
             Manifest.permission.READ_CONTACTS,
             Manifest.permission.CALL_PHONE,

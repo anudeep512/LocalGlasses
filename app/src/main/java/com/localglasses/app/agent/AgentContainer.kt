@@ -13,7 +13,9 @@ import com.localglasses.app.agent.model.LiteRtEngine
 import com.localglasses.app.agent.model.MemoryGuard
 import com.localglasses.app.agent.model.ModelRepository
 import com.localglasses.app.agent.safety.SafetyPolicy
+import com.localglasses.app.agent.automation.ForegroundApp
 import com.localglasses.app.agent.trace.AliasStore
+import com.localglasses.app.agent.trace.ScreenshotStore
 import com.localglasses.app.agent.trace.TraceExporter
 import com.localglasses.app.agent.trace.TraceRecorder
 import com.localglasses.app.agent.trace.TraceDatabase
@@ -60,6 +62,12 @@ class AgentContainer(context: Context) {
     val traceRecorder: TraceRecorder by lazy { TraceRecorder(traceDatabase) }
 
     val traceExporter: TraceExporter by lazy { TraceExporter(appContext, traceDatabase) }
+
+    val screenshotStore: ScreenshotStore by lazy {
+        ScreenshotStore(java.io.File(appContext.filesDir, "traces/shots"))
+    }
+
+    val foregroundApp: ForegroundApp by lazy { ForegroundApp(appContext) }
 
     val contactsResolver: ContactsResolver by lazy {
         ContactsResolver(aliasStore::get, AndroidContactSource(appContext))
