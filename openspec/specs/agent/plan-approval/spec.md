@@ -88,20 +88,15 @@ Every edited plan SHALL be checked against the hard-block policy again before ap
 - **AND** the status explains the block
 - **AND** no step executes
 
-### Requirement: Execution overlay
+### Requirement: Silent execution
 
-While a UI task runs in another app, the system SHALL show plan progress and a stop control in an overlay above that app.
+While a UI task runs in another app, the system SHALL NOT display an overlay or request display-over-other-apps permission.
 
-#### Scenario: Progress over another app
-- **WHEN** an approved UI task starts in WhatsApp
-- **THEN** the overlay shows the current step and a stop control
-- **AND** the overlay remains visible while the task runs
-
-#### Scenario: Overlay permission missing
-- **WHEN** overlay permission is not granted
-- **THEN** a UI task that needs another app cannot start
-- **AND** the status explains the missing permission
-- **AND** an in-app plan can still be reviewed
+#### Scenario: UI task starts
+- **WHEN** an approved UI task starts in WhatsApp or YouTube
+- **THEN** no progress overlay is shown
+- **AND** the target app is not covered by a LocalGlasses window
+- **AND** progress status remains available when the user returns to LocalGlasses
 
 ### Requirement: One pending plan
 

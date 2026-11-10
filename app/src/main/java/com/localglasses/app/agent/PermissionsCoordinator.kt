@@ -34,19 +34,6 @@ object PermissionsCoordinator {
         }
     }
 
-    fun overlayGranted(context: Context): Boolean = Settings.canDrawOverlays(context)
-
-    fun requestOverlay(context: Context) {
-        runCatching {
-            context.startActivity(
-                Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:${context.packageName}"),
-                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            )
-        }
-    }
-
     fun usageAccessGranted(context: Context): Boolean {
         val appOps = context.getSystemService(android.app.AppOpsManager::class.java)
         val mode = appOps.unsafeCheckOpNoThrow(

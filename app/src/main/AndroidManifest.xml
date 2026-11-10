@@ -13,7 +13,6 @@
 
     <!-- Agent: services and special access -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
@@ -88,10 +87,6 @@
                 <data android:scheme="localglasses" />
             </intent-filter>
         </activity>
-
-        <service
-            android:name=".agent.approval.ExecutionOverlay"
-            android:exported="false" />
 
         <service
             android:name=".agent.automation.AgentAccessibilityService"

@@ -25,10 +25,6 @@ class ActionRegistry(
                 arguments["contact"]?.toString(),
                 arguments["message"]?.toString(),
             )
-            "play_media" -> playMedia(
-                arguments["query"] as? String,
-                arguments["service"] as? String,
-            )
             "set_device_setting" -> {
                 val setting = arguments["setting"] as? String
                 val value = (arguments["value"] as? Number)?.toInt()
@@ -139,35 +135,6 @@ class ActionRegistry(
                 ?: normalized
         }
         return e164.filter { it.isDigit() }
-    }
-
-    private fun playMedia(query: String?, service: String?): ActionExecution {
-        if (query.isNullOrBlank()) return ActionExecution.Failed("Search text is required")
-        val music = service == "youtube_music"
-        val packageName = if (music) {
-            "com.google.android.apps.youtube.music"
-        } else {
-            "com.google.android.youtube"
-        }
-        if (!installed(packageName)) {
-            return ActionExecution.Failed("$packageName is not installed")
-        }
-        val uri = if (music) {
-            Uri.parse("https://music.youtube.com/search?q=${Uri.encode(query)}")
-        } else {
-            Uri.parse("https://www.youtube.com/results?search_query=${Uri.encode(query)}")
-        }
-        val launched = launch(
-            Intent(Intent.ACTION_VIEW, uri).setPackage(packageName),
-            "Search opened",
-        )
-        return if (launched is ActionExecution.Success) {
-            ActionExecution.Failed(
-                "Search opened; automatic play needs the accessibility executor",
-            )
-        } else {
-            launched
-        }
     }
 
     private fun launch(intent: Intent, success: String): ActionExecution = runCatching {

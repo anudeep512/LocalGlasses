@@ -9,7 +9,6 @@ import com.localglasses.app.agent.automation.AgentAccessibilityService
 import com.localglasses.app.agent.automation.AndroidAccessibilityGateway
 import com.localglasses.app.agent.automation.PlanExecutor
 import com.localglasses.app.agent.automation.UiPlanner
-import com.localglasses.app.agent.approval.ExecutionOverlay
 import com.localglasses.app.agent.automation.ScreenshotTaker
 import com.localglasses.app.agent.approval.Plan
 import com.localglasses.app.agent.approval.PlanCoordinator
@@ -30,7 +29,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class AgentUiState(
@@ -149,13 +147,6 @@ class AgentViewModel @JvmOverloads constructor(
                         setStatus("Accessibility service is not enabled", speak = true)
                         finishActiveTrace(
                             command, "ui_plan", decision.app, "needs_permission", "accessibility",
-                        )
-                        return@launch
-                    }
-                    if (!PermissionsCoordinator.overlayGranted(getApplication())) {
-                        setStatus("Display-over-other-apps permission is required", speak = true)
-                        finishActiveTrace(
-                            command, "ui_plan", decision.app, "needs_permission", "overlay",
                         )
                         return@launch
                     }
@@ -369,21 +360,15 @@ class AgentViewModel @JvmOverloads constructor(
             setStatus("Accessibility service is not enabled", speak = true)
             return
         }
-        val context = getApplication<Application>()
-        ExecutionOverlay.start(context, "Executing plan")
-        delay(1_200)
         val executor = PlanExecutor(
             gateway = AndroidAccessibilityGateway(service),
             safety = container.safetyPolicy,
-            stopRequested = { ExecutionOverlay.stopRequested },
         )
         val result = executor.execute(plan) { index, step ->
-            ExecutionOverlay.update(context, "Step ${index + 1}: ${step}")
             activeTraceId?.let {
                 container.traceRecorder.step(it, index, step.toString(), null, "running", 0)
             }
         }
-        ExecutionOverlay.stop(context)
         result.fold(
             onSuccess = {
                 coordinator.complete()

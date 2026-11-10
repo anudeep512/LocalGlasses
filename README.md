@@ -157,6 +157,55 @@ Commands are stateless: a new command starts with no history from the previous o
 
 Spotify, alarms/timers, Telegram, and arbitrary app launching are not supported.
 
+## Deterministic action paths
+
+The model never executes an action. It selects exactly one registered tool; `ToolCallParser`
+validates the name and arguments; `PlanFactory` creates a one-step plan; the plan waits for
+approval; `AgentViewModel.approvePlan()` runs the matching deterministic path.
+
+| User intent | Model tool | Validated action | Execution path |
+|---|---|---|---|
+| Call a contact | `call_contact` | `call_contact` | Resolve contact/number, then `ACTION_CALL` |
+| Send an SMS | `send_sms` | `send_sms` | Resolve contact, then `SmsManager.sendTextMessage` |
+| WhatsApp message | `send_whatsapp` | `send_whatsapp` | Resolve contact, open `wa.me` draft; accessibility can send |
+| YouTube / YouTube Music | `play_media` | `play_media` | `YouTubePlayer`: open search, tap first video result |
+| Change a setting | `set_device_setting` | `set_device_setting` | `SettingsController.apply` |
+| Open a Settings page | `open_settings_page` | `open_settings_page` | `SettingsController.openPage` |
+| Generic app/UI task | `plan_ui_task` | `ui_plan` | `WhatsAppUiPlanFactory` when possible, otherwise `UiPlanner`; `PlanExecutor` steps |
+| Explicit “using the UI” / “on-screen” | none | `ui_plan` | Router bypasses the model and goes straight to planning |
+
+Unknown tools, missing arguments, extra arguments, wrong types, and multiple tool calls are
+rejected before a plan exists. No registry action is invented at runtime.
+
+### YouTube path
+
+For `play Kanye West on YouTube`, the model should emit:
+
+```text
+play_media(query="Kanye West", service="youtube")
+```
+
+`YouTubePlayer` then:
+
+1. checks that YouTube is installed;
+2. opens `https://www.youtube.com/results?search_query=...`;
+3. adds `sp=CAMSAhAB` when the query says “most viewed”, “most popular”, or “top viewed”
+   (YouTube’s view-count sort);
+4. waits for the YouTube package to become the foreground app, then waits up to 12 seconds
+   and tries the YouTube thumbnail, YouTube Music thumbnail, and “play video” selectors;
+5. checks for playback controls and reports “Playing …” only when they are visible;
+   otherwise it reports “Selected a YouTube result; playback is not confirmed”.
+
+For “play most viewed song of Kanye West on YouTube”, the model normally passes the raw
+phrase as `query`. This is still a **search + first-result tap**, not a YouTube Data API query:
+the app cannot read view counts, exclude Shorts/ads/interviews, or guarantee that the opened
+video is the intended “most viewed song”. If YouTube changes its view ids or renders the
+result page slowly, the tap can fail and the status says so. Exact playback needs a known
+video id (`youtube.com/watch?v=...`) and a future `play_video(videoId)` action.
+
+UI plans now execute silently. There is no black “plan executing” overlay: the target app is
+never covered by a LocalGlasses window, and no display-over-other-apps permission is requested.
+
 ## Trace data
 
 - Tables: `traces`, `trace_steps`, `trace_metrics`, `notifications` in the encrypted database.
@@ -186,8 +235,8 @@ left alone.
 
 1. Install the debug APK.
 2. Open the Agent tab and download the 2.59 GB model; wait for **Model ready**.
-3. Grant notifications, overlay, and (for UI tasks) Accessibility. For sideloaded builds,
-   enable **Allow restricted settings** in App info before enabling Accessibility.
+3. Grant notifications and (for UI tasks) Accessibility. For sideloaded builds, enable
+   **Allow restricted settings** in App info before enabling Accessibility.
 4. Grant contacts / call / SMS and Modify system settings as needed.
 5. Optional: grant Usage access and the battery-optimisation exemption.
 6. Type `call 7396512369` and confirm a plan appears; cancel it if you only want to test routing.
@@ -238,9 +287,10 @@ YouTube prompt and reached ~88 °C. CPU is the deliberate default.
   rotation, DND, and flashlight; screen timeout also checked manually.
 - Trace export/purge verified: files land in `Download/LocalGlasses/`, purge leaves exports.
 
-Known limitations: Accessibility and overlay access are manual grants on a sideloaded
-build; real calls/messages depend on the SIM and WhatsApp availability; secure-screen
-detection is best-effort because Android does not expose `FLAG_SECURE` to accessibility.
+Known limitations: Accessibility is a manual grant on a sideloaded build; real
+calls/messages depend on the SIM and WhatsApp availability; secure-screen detection is
+best-effort because Android does not expose `FLAG_SECURE` to accessibility. UI plans run
+without an overlay, so the user must return to LocalGlasses to see the final status.
 
 ### Benchmark (CPH2717, Gemma 4 E2B, 2048 context)
 
@@ -262,9 +312,7 @@ thermal status 1, battery 62%, no crash.
 
 1. **Accessibility** — Settings → Apps → LocalGlasses → **Allow restricted settings**, then
    Settings → Accessibility → LocalGlasses → **On**. Without this, generic UI tasks are refused.
-2. **Display over other apps** — Settings → Apps → LocalGlasses → **Display over other apps**.
-   The execution overlay uses it to show the current step and the stop button.
-3. **Usage access** (optional) — Settings → Apps → Special access → Usage access. Used only to
+2. **Usage access** (optional) — Settings → Apps → Special access → Usage access. Used only to
    report the foreground package.
 
 Supported UI step types: `open_app`, `tap` (view id, text, content description, or text
