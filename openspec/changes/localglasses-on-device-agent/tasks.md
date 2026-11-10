@@ -56,7 +56,7 @@
 - [x] 6.3 Implement the call action with `CALL_PHONE` checks and an `ACTION_CALL` step. Verify on device that an approved call reaches the dialer and that a missing permission produces `NeedsPermission`.
 - [x] 6.4 Implement the SMS action with the resolved recipient and message in the plan and `SmsManager` execution. Verify on device that an approved SMS is sent and that a missing permission does not send.
 - [x] 6.5 Implement the WhatsApp action with a prefilled conversation and a send step resolved by view id then content description, failing closed when not found. Verify on device that an approved message sends and that a removed selector produces "not sent".
-- [ ] 6.6 Implement the YouTube and YouTube Music actions with package-specific search URIs and first-result play steps. Verify on device for both packages and with one package uninstalled.
+- [x] 6.6 Implement the YouTube and YouTube Music actions with package-specific search URIs and first-result play steps. Verify on device for both packages and with one package uninstalled.
 - [ ] 6.7 Implement `SettingsController` for screen timeout, brightness, media volume, DND, rotation, flashlight, and open-page, with range validation and access checks. Verify unit tests for ranges and device checks for each write.
 - [ ] 6.8 Build the Settings and alias-editing screens: model state, aliases, trace actions, and special-access shortcuts. Verify manual add/edit/delete of an alias and that the next call uses it.
 - [x] 6.9 Document supported actions, required permissions, and excluded apps in `README.md`. Verify the list matches the registry.
@@ -83,7 +83,7 @@
 ## 9. Integration and Device Validation
 
 - [ ] 9.1 Run the call and SMS flows end to end with an alias such as "Amma", including multiple-match disambiguation. Verify the call/SMS log matches the approved plan.
-- [ ] 9.2 Run the WhatsApp send and YouTube play flows end to end from typed command through approval. Verify the target app performs the approved action and the status matches.
+- [x] 9.2 Run the WhatsApp send and YouTube play flows end to end from typed command through approval. Verify the target app performs the approved action and the status matches.
 - [ ] 9.3 Run all seven settings actions on the device, including a missing write-settings and DND access case. Verify each value before and after and that no partial write occurs.
 - [ ] 9.4 Verify the default-assistant entry, the camera tab, TTS output, and the overlay stop control in one session. Verify the agent opens from the assist gesture and the camera still streams.
 - [ ] 9.5 Exercise every permission-denied path: contacts, call, SMS, accessibility, overlay, write settings, DND, notification listener, usage access, and battery exemption. Verify each reports a clear status and no partial action.
