@@ -84,6 +84,12 @@ class SettingsControllerTest {
     }
 
     @Test
+    fun opensSettingsPage() {
+        assertTrue(controller.openPage("display") is ActionExecution.Success)
+        assertTrue(controller.openPage("not_a_page") is ActionExecution.Failed)
+    }
+
+    @Test
     fun flashlightReportsResultWithoutCrashing() {
         val on = controller.apply("flashlight_on", 0)
         assertTrue(on is ActionExecution.Success || on is ActionExecution.Failed)
