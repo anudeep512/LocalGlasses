@@ -54,7 +54,14 @@ object PermissionsCoordinator {
             android.os.Process.myUid(),
             context.packageName,
         )
-        return mode == android.app.AppOpsManager.MODE_ALLOWED
+        if (mode == android.app.AppOpsManager.MODE_ALLOWED) return true
+        val manager = context.getSystemService(android.app.usage.UsageStatsManager::class.java)
+        val end = System.currentTimeMillis()
+        return manager.queryUsageStats(
+            android.app.usage.UsageStatsManager.INTERVAL_DAILY,
+            end - 60_000,
+            end,
+        )?.isNotEmpty() == true
     }
 
     fun requestUsageAccess(context: Context) {
