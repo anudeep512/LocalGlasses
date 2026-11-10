@@ -1,5 +1,6 @@
 package com.localglasses.app.agent.model
 
+import com.google.ai.edge.litertlm.BenchmarkInfo
 import com.google.ai.edge.litertlm.ToolProvider
 
 data class InferenceToolCall(
@@ -10,6 +11,7 @@ data class InferenceToolCall(
 data class InferenceReply(
     val text: String,
     val toolCalls: List<InferenceToolCall>,
+    val benchmarkInfo: BenchmarkInfo? = null,
 )
 
 interface InferenceConversation : AutoCloseable {

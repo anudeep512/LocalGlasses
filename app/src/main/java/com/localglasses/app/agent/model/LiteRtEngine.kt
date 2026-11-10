@@ -5,9 +5,11 @@ import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.ExperimentalApi
 import com.google.ai.edge.litertlm.ToolProvider
 import java.io.File
 
+@OptIn(ExperimentalApi::class)
 class LiteRtEngine(
     private val modelFile: File,
     private val cacheDir: File,
@@ -55,6 +57,7 @@ class LiteRtEngine(
                     toolCalls = message.toolCalls.map {
                         InferenceToolCall(it.name, it.arguments)
                     },
+                    benchmarkInfo = runCatching { conversation.getBenchmarkInfo() }.getOrNull(),
                 )
             }
 
