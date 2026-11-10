@@ -26,6 +26,7 @@ class PlanApprovalSheetTest {
                 onApprove = {},
                 onCancel = {},
                 onUpdate = { transform -> updated = transform(plan) },
+                onReplan = {},
             )
         }
 
