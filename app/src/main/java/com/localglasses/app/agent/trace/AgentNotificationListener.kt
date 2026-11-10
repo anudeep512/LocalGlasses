@@ -10,11 +10,12 @@ class AgentNotificationListener : NotificationListenerService() {
         if (sbn.packageName == packageName) return
         val app = application as? LocalGlassesApp ?: return
         runCatching {
+            val metadata = NotificationMetadataMapper.from(sbn)
             app.agentContainer.traceDatabase.recordNotification(
-                packageName = sbn.packageName,
-                postedAt = sbn.postTime,
-                channel = sbn.notification.channelId,
-                groupKey = sbn.groupKey,
+                packageName = metadata.packageName,
+                postedAt = metadata.postedAt,
+                channel = metadata.channel,
+                groupKey = metadata.groupKey,
             )
         }
     }

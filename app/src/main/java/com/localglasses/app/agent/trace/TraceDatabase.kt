@@ -225,6 +225,11 @@ class TraceDatabase(
             if (cursor.moveToFirst()) cursor.getLong(0) else 0L
         }
 
+    fun countNotifications(): Long =
+        db.rawQuery("SELECT COUNT(*) FROM notifications", null).use { cursor ->
+            if (cursor.moveToFirst()) cursor.getLong(0) else 0L
+        }
+
     fun purge() {
         db.delete("trace_steps", null, null)
         db.delete("traces", null, null)
