@@ -144,6 +144,18 @@ Known limitations: Accessibility and overlay access are manual grants on a sidel
 build; real calls/messages depend on the SIM and WhatsApp availability; secure-screen
 detection is best-effort because Android does not expose `FLAG_SECURE` to accessibility.
 
+### Benchmark (CPH2717, Gemma 4 E2B, 2048 context)
+
+| Backend | Prefill tok/s | Decode tok/s | TTFT |
+|---|---:|---:|---:|
+| CPU | 156.8 | 2.28 | 13.50 s |
+| GPU | 892.6 | 2.77 | 2.66 s |
+
+The GPU backend had one tool-call parse failure on the YouTube prompt and pushed SoC
+temperature to ~88 °C during the run. CPU remains the default for reliability; GPU is an
+opt-in experiment. Command-matrix benchmark covers call, SMS, WhatsApp, YouTube, screen
+timeout, brightness, and a generic UI task.
+
 ## Enabling automation access
 
 1. **Accessibility** — Settings → Apps → LocalGlasses → **Allow restricted settings**, then
