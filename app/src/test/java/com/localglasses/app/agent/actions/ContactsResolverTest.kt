@@ -48,6 +48,16 @@ class ContactsResolverTest {
     }
 
     @Test
+    fun directNumberResolvesWithoutContacts() {
+        val resolver = ContactsResolver({ null }, { emptyList() })
+
+        val result = resolver.resolve("73965 12369")
+
+        assertTrue(result is ContactResolution.Unique)
+        assertEquals("7396512369", (result as ContactResolution.Unique).contact.phone)
+    }
+
+    @Test
     fun noMatch() {
         val resolver = ContactsResolver({ null }, { emptyList() })
 

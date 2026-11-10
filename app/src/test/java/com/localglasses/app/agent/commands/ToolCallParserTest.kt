@@ -23,6 +23,14 @@ class ToolCallParserTest {
     }
 
     @Test
+    fun numericContactIsAccepted() {
+        val decision = ToolCallParser.parse(
+            listOf(InferenceToolCall("call_contact", mapOf("contact" to 7396512369L))),
+        )
+        assertTrue(decision is RoutingDecision.Action)
+    }
+
+    @Test
     fun camelCaseToolNameIsAccepted() {
         val decision = ToolCallParser.parse(
             listOf(InferenceToolCall("callContact", mapOf("contact" to "Amma"))),
