@@ -13,22 +13,17 @@ class AndroidAccessibilityGateway(
 
     override fun observe(): ScreenObservation {
         val root = service.rootInActiveWindow ?: return ScreenObservation(null, emptyList())
-        val nodes = mutableListOf<ObservedNode>()
+        val nodes = mutableListOf<NodeSnapshot>()
         val queue = ArrayDeque<AccessibilityNodeInfo>()
         queue.add(root)
-        while (queue.isNotEmpty() && nodes.size < MAX_NODES) {
+        while (queue.isNotEmpty() && nodes.size < ObservationComposer.MAX_NODES) {
             val node = queue.removeFirst()
             if (node.isVisibleToUser) {
                 nodes.add(
-                    ObservedNode(
-                        index = nodes.size,
+                    NodeSnapshot(
                         viewId = node.viewIdResourceName,
-                        text = if (node.isPassword) null else node.text?.toString()?.take(MAX_TEXT),
-                        contentDescription = if (node.isPassword) {
-                            null
-                        } else {
-                            node.contentDescription?.toString()?.take(MAX_TEXT)
-                        },
+                        text = node.text?.toString(),
+                        contentDescription = node.contentDescription?.toString(),
                         className = node.className?.toString(),
                         bounds = Rect().also { node.getBoundsInScreen(it) },
                         clickable = node.isClickable,
@@ -42,7 +37,7 @@ class AndroidAccessibilityGateway(
                 node.getChild(index)?.let(queue::add)
             }
         }
-        return ScreenObservation(root.packageName?.toString(), nodes)
+        return ObservationComposer.compose(root.packageName?.toString(), nodes)
     }
 
     override fun tap(target: NodeSelector): Boolean {
@@ -123,8 +118,4 @@ class AndroidAccessibilityGateway(
         return null
     }
 
-    private companion object {
-        const val MAX_NODES = 80
-        const val MAX_TEXT = 80
-    }
 }
