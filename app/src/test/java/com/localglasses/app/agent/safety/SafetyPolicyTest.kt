@@ -1,5 +1,7 @@
 package com.localglasses.app.agent.safety
 
+import com.localglasses.app.agent.approval.Plan
+import com.localglasses.app.agent.approval.PlanStep
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -73,6 +75,24 @@ class SafetyPolicyTest {
                 screenText = "Your one-time password is ready",
             ).blocked,
         )
+    }
+
+    @Test
+    fun blocksPlanThatOpensABlockedPackage() {
+        val plan = Plan(
+            command = "open it",
+            steps = listOf(PlanStep.OpenApp("com.example.payment")),
+        )
+        assertTrue(policy.checkPlan(plan).blocked)
+    }
+
+    @Test
+    fun allowsBenignPlan() {
+        val plan = Plan(
+            command = "open chat",
+            steps = listOf(PlanStep.OpenApp("com.whatsapp")),
+        )
+        assertFalse(policy.checkPlan(plan).blocked)
     }
 
     @Test

@@ -1,6 +1,8 @@
 package com.localglasses.app.agent.safety
 
 import android.content.Context
+import com.localglasses.app.agent.approval.Plan
+import com.localglasses.app.agent.approval.PlanStep
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -59,6 +61,23 @@ class SafetyPolicy(
         }
         if (blockedPackageFragments.any { name.contains(it) }) {
             return SafetyVerdict.block("Blocked package category: $packageName")
+        }
+        return SafetyVerdict.Allowed
+    }
+
+    fun checkPlan(plan: Plan): SafetyVerdict {
+        plan.steps.forEach { step ->
+            when (step) {
+                is PlanStep.OpenApp -> checkPackage(step.packageName)
+                is PlanStep.Tap -> checkTarget(null, step.target.text, isPassword = false)
+                is PlanStep.TypeText -> checkTarget(
+                    packageName = null,
+                    targetText = step.target.text,
+                    isPassword = false,
+                    screenText = step.text,
+                )
+                else -> SafetyVerdict.Allowed
+            }.takeIf { it.blocked }?.let { return it }
         }
         return SafetyVerdict.Allowed
     }

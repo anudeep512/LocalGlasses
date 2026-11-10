@@ -131,6 +131,33 @@ class ToolCallParserTest {
     }
 
     @Test
+    fun whatsappCallIsAccepted() {
+        val decision = ToolCallParser.parse(
+            listOf(
+                InferenceToolCall(
+                    "send_whatsapp",
+                    mapOf("contact" to 7396512369L, "message" to "hi"),
+                ),
+            ),
+        )
+        assertTrue(decision is RoutingDecision.Action)
+    }
+
+    @Test
+    fun settingsPageIsValidated() {
+        assertTrue(
+            ToolCallParser.parse(
+                listOf(InferenceToolCall("open_settings_page", mapOf("page" to "display"))),
+            ) is RoutingDecision.Action,
+        )
+        assertTrue(
+            ToolCallParser.parse(
+                listOf(InferenceToolCall("open_settings_page", mapOf("page" to "whatsapp"))),
+            ) is RoutingDecision.NoMatch,
+        )
+    }
+
+    @Test
     fun invalidMediaServiceIsRejected() {
         val decision = ToolCallParser.parse(
             listOf(

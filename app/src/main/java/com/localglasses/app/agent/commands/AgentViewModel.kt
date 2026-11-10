@@ -201,6 +201,16 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     fun approvePlan() {
         val plan = container.planCoordinator.approve() ?: return
         viewModelScope.launch {
+            container.safetyPolicy.checkPlan(plan).takeIf { it.blocked }?.let { verdict ->
+                val reason = verdict.reason ?: "Blocked by safety policy"
+                container.planCoordinator.fail(reason)
+                activeTraceId?.let {
+                    container.traceRecorder.finish(it, plan.command, "blocked", plan.targetPackage, "blocked", reason)
+                }
+                activeTraceId = null
+                setStatus("Blocked: $reason", speak = true)
+                return@launch
+            }
             val step = plan.steps.singleOrNull() as? PlanStep.RunAction
             if (step == null) {
                 executeUiPlan(plan)
