@@ -18,10 +18,11 @@ class ScreenshotTaker(
 
     fun capture(name: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
-        service.takeScreenshot(
-            Display.DEFAULT_DISPLAY,
-            service.mainExecutor,
-            object : AccessibilityService.TakeScreenshotCallback {
+        runCatching {
+            service.takeScreenshot(
+                Display.DEFAULT_DISPLAY,
+                service.mainExecutor,
+                object : AccessibilityService.TakeScreenshotCallback {
                 override fun onSuccess(screenshot: AccessibilityService.ScreenshotResult) {
                     val buffer = screenshot.hardwareBuffer
                     val bitmap = Bitmap.wrapHardwareBuffer(buffer, screenshot.colorSpace)
@@ -39,7 +40,8 @@ class ScreenshotTaker(
                 override fun onFailure(errorCode: Int) {
                     // ERROR_TAKE_SCREENSHOT_SECURE_WINDOW and other failures store nothing.
                 }
-            },
-        )
+                },
+            )
+        }
     }
 }

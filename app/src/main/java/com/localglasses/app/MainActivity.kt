@@ -359,6 +359,11 @@ private fun SettingsPlaceholder() {
         }
 
         val app = context.applicationContext as LocalGlassesApp
+        val modelState by app.agentContainer.modelRepository.state.collectAsState()
+        Text(
+            "Model: ${AgentViewModel.statusText(modelState)}",
+            style = MaterialTheme.typography.bodySmall,
+        )
 
         val traceDatabase = app.agentContainer.traceDatabase
         val traceExporter = app.agentContainer.traceExporter

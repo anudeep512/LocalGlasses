@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class AgentUiState(
@@ -329,6 +330,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         }
         val context = getApplication<Application>()
         ExecutionOverlay.start(context, "Executing plan")
+        delay(1_200)
         val executor = PlanExecutor(
             gateway = AndroidAccessibilityGateway(service),
             safety = container.safetyPolicy,
