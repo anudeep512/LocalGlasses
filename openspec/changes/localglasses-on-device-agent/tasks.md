@@ -37,7 +37,7 @@
 - [x] 4.3 Implement `Plan`, `PlanStep`, validation, and `PlanCoordinator` with a single pending plan. Verify unit tests for a second command while pending and for discarding task state after completion.
 - [x] 4.4 Build `PlanApprovalSheet` with approve, edit, reorder, delete, and cancel, and invalidate approval on every edit. Verify a Compose instrumentation test for edit invalidation and a manual approval of a two-step plan.
 - [x] 4.5 Implement natural-language correction: send the command, current plan, and correction to the planner, replace the pending plan, and require new approval. Verify a unit test with a fake planner.
-- [ ] 4.6 Add `ExecutionOverlay` with progress text and a stop button, guarded by `Settings.canDrawOverlays`. Verify on device that the overlay appears over WhatsApp and that stop prevents the next step.
+- [x] 4.6 Add `ExecutionOverlay` with progress text and a stop button, guarded by `Settings.canDrawOverlays`. Verify on device that the overlay appears over WhatsApp and that stop prevents the next step.
 - [ ] 4.7 Wire phone TTS for approval requests, completions, and failures, with one utterance per event. Verify manually that no token stream or duplicate status is spoken.
 - [ ] 4.8 Wire the real router to `AgentViewModel` behind a fake engine in tests, covering needs-model, needs-permission, no-match, pending, blocked, success, and failure results. Verify instrumentation tests for each state.
 - [x] 4.9 Document the command-to-approval flow and the "approval is confirmation" rule in `README.md`. Verify the described flow matches the UI.
@@ -58,7 +58,7 @@
 - [x] 6.5 Implement the WhatsApp action with a prefilled conversation and a send step resolved by view id then content description, failing closed when not found. Verify on device that an approved message sends and that a removed selector produces "not sent".
 - [x] 6.6 Implement the YouTube and YouTube Music actions with package-specific search URIs and first-result play steps. Verify on device for both packages and with one package uninstalled.
 - [x] 6.7 Implement `SettingsController` for screen timeout, brightness, media volume, DND, rotation, flashlight, and open-page, with range validation and access checks. Verify unit tests for ranges and device checks for each write.
-- [ ] 6.8 Build the Settings screen: model state, trace actions, and special-access shortcuts. Verify the screen is reachable and the controls work.
+- [x] 6.8 Build the Settings screen: model state, trace actions, and special-access shortcuts. Verify the screen is reachable and the controls work.
 - [x] 6.9 Document supported actions, required permissions, and excluded apps in `README.md`. Verify the list matches the registry.
 
 ## 7. Accessibility Automation
