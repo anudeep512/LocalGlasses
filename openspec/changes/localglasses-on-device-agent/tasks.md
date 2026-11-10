@@ -27,7 +27,7 @@
 - [x] 3.1 Implement `Redactor` for OTP-like values, bearer tokens, API keys, long hex strings, and card-like numbers. Verify unit tests cover each pattern and leave ordinary text unchanged.
 - [x] 3.2 Add the read-only safety denylist asset and implement `SafetyPolicy` checks for the six hard-block categories, password nodes, OTP patterns, ambiguity denial, and command-level blocks. Verify unit tests cover every category and a benign command.
 - [ ] 3.3 Implement `SecureScreen` detection using the package denylist and `ERROR_TAKE_SCREENSHOT_SECURE_WINDOW`, and map it to a block result. Verify unit tests for both signals and a device check on a secure app.
-- [ ] 3.4 Wire `checkCommand` into command submission, `checkPlan` into approval, and `checkStep` into the executor seam, and ensure a block records only package and reason. Verify unit tests and a manual blocked command.
+- [x] 3.4 Wire `checkCommand` into command submission, `checkPlan` into approval, and `checkStep` into the executor seam, and ensure a block records only package and reason. Verify unit tests and a manual blocked command.
 - [x] 3.5 Document the hard-block list, the secure-screen limitation, and the notification content limit in `README.md`. Verify the documented list matches `SafetyPolicy`.
 
 ## 4. Commands and Approval
@@ -51,7 +51,7 @@
 
 ## 6. Action Registry
 
-- [ ] 6.1 Implement `ActionRegistry`, parameter validators, and plan builders for the seven router actions. Verify unit tests for valid and invalid arguments for each action.
+- [x] 6.1 Implement `ActionRegistry`, parameter validators, and plan builders for the seven router actions. Verify unit tests for valid and invalid arguments for each action.
 - [x] 6.2 Implement `ContactsResolver` with direct-number handling, normalised exact/prefix/contains matching, deterministic ordering, and multiple-match disambiguation. Verify unit tests for direct number, unique, multiple, and none cases.
 - [x] 6.3 Implement the call action with `CALL_PHONE` checks and an `ACTION_CALL` step. Verify on device that an approved call reaches the dialer and that a missing permission produces `NeedsPermission`.
 - [x] 6.4 Implement the SMS action with the resolved recipient and message in the plan and `SmsManager` execution. Verify on device that an approved SMS is sent and that a missing permission does not send.
