@@ -21,6 +21,8 @@ sealed interface PlanStep {
 
     data class OpenApp(val packageName: String) : PlanStep
 
+    data class OpenUri(val uri: String) : PlanStep
+
     data class Tap(val target: NodeSelector) : PlanStep
 
     data class TypeText(val target: NodeSelector, val text: String) : PlanStep
@@ -50,6 +52,11 @@ object PlanValidator {
                 }
                 is PlanStep.OpenApp -> {
                     require(step.packageName.isNotBlank()) { "package is blank" }
+                }
+                is PlanStep.OpenUri -> {
+                    require(step.uri.startsWith("https://") || step.uri.startsWith("http://")) {
+                        "URI must be http(s)"
+                    }
                 }
                 is PlanStep.Tap -> require(step.target != NodeSelector()) { "tap has no target" }
                 is PlanStep.TypeText -> {

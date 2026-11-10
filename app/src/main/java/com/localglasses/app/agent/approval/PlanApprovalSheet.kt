@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 fun planStepDescription(step: PlanStep): String = when (step) {
     is PlanStep.RunAction -> "Run ${step.actionId}"
     is PlanStep.OpenApp -> "Open ${step.packageName}"
+    is PlanStep.OpenUri -> "Open ${step.uri}"
     is PlanStep.Tap -> "Tap ${step.target.text ?: step.target.contentDescription ?: "target"}"
     is PlanStep.TypeText -> "Type \"${step.text}\""
     is PlanStep.Scroll -> "Scroll ${step.direction}"

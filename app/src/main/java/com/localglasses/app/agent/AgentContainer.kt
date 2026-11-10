@@ -7,6 +7,7 @@ import com.localglasses.app.agent.actions.AndroidContactSource
 import com.localglasses.app.agent.actions.ContactsResolver
 import com.localglasses.app.agent.actions.SettingsController
 import com.localglasses.app.agent.actions.WhatsAppSender
+import com.localglasses.app.agent.actions.WhatsAppUiPlanFactory
 import com.localglasses.app.agent.actions.YouTubePlayer
 import com.localglasses.app.agent.commands.CommandRouter
 import com.localglasses.app.agent.model.AndroidMemorySource
@@ -80,6 +81,10 @@ class AgentContainer(context: Context) {
 
     val whatsAppSender: WhatsAppSender by lazy {
         WhatsAppSender(appContext, contactsResolver)
+    }
+
+    val whatsAppUiPlanFactory: WhatsAppUiPlanFactory by lazy {
+        WhatsAppUiPlanFactory(appContext, contactsResolver)
     }
 
     val youTubePlayer: YouTubePlayer by lazy { YouTubePlayer(appContext) }

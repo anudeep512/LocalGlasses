@@ -19,6 +19,10 @@ class CommandRouter(
             return RoutingDecision.Blocked(it.reason ?: "Blocked by safety policy")
         }
 
+        if (asksForUi(command)) {
+            return RoutingDecision.UiPlan(goal = command, app = appFrom(command))
+        }
+
         val engine = engineHolder.ensureLoaded().getOrElse { error ->
             return RoutingDecision.Failed(error.message ?: "Model unavailable")
         }
@@ -43,6 +47,21 @@ class CommandRouter(
         }
     }
 
+    private fun asksForUi(command: String): Boolean {
+        val text = command.lowercase()
+        return "using the ui" in text || "on-screen" in text || "on screen" in text
+    }
+
+    private fun appFrom(command: String): String? {
+        val text = command.lowercase()
+        return when {
+            "whatsapp" in text -> "com.whatsapp"
+            "youtube music" in text -> "com.google.android.apps.youtube.music"
+            "youtube" in text -> "com.google.android.youtube"
+            else -> null
+        }
+    }
+
     companion object {
         val SYSTEM_PROMPT = """
             You are the LocalGlasses command router.
@@ -60,6 +79,7 @@ class CommandRouter(
             play any song by Kanye West -> play_media(query="Kanye West", service="youtube")
             open WhatsApp -> plan_ui_task(goal="open WhatsApp", app="com.whatsapp")
             Open an app with plan_ui_task, never with open_settings_page.
+            If the user says "using the UI" or "on-screen", call plan_ui_task and never a registry action.
             open_settings_page is only for Android Settings pages such as display or wifi.
             If no tool fits, return no tool call.
         """.trimIndent()

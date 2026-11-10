@@ -12,6 +12,7 @@ import com.localglasses.app.agent.automation.UiPlanner
 import com.localglasses.app.agent.approval.ExecutionOverlay
 import com.localglasses.app.agent.automation.ScreenshotTaker
 import com.localglasses.app.agent.approval.Plan
+import com.localglasses.app.agent.approval.PlanCoordinator
 import com.localglasses.app.agent.approval.PlanFactory
 import com.localglasses.app.agent.approval.PlanReplanner
 import com.localglasses.app.agent.approval.PlanState
@@ -33,12 +34,25 @@ data class AgentUiState(
     val suggestions: List<String> = emptyList(),
 )
 
-class AgentViewModel(app: Application) : AndroidViewModel(app) {
+class AgentViewModel @JvmOverloads constructor(
+    app: Application,
+    private val routerOverride: CommandRouter? = null,
+    private val modelStateOverride: StateFlow<ModelState>? = null,
+    private val planCoordinatorOverride: PlanCoordinator? = null,
+    private val accessibilityOverride: Boolean? = null,
+) : AndroidViewModel(app) {
 
     private val container = (app as LocalGlassesApp).agentContainer
+    private val router = routerOverride ?: container.commandRouter
+    private val coordinator = planCoordinatorOverride ?: container.planCoordinator
 
-    val modelState: StateFlow<ModelState> = container.modelRepository.state
-    val planState: StateFlow<PlanState> = container.planCoordinator.state
+    val modelState: StateFlow<ModelState> = modelStateOverride ?: container.modelRepository.state
+    val planState: StateFlow<PlanState> = coordinator.state
+
+    private val accessibilityAvailable: Boolean
+        get() = accessibilityOverride
+            ?: (AgentAccessibilityService.instance != null ||
+                AgentAccessibilityService.isEnabled(getApplication()))
 
     private val _uiState = MutableStateFlow(AgentUiState())
     val uiState: StateFlow<AgentUiState> = _uiState.asStateFlow()
@@ -48,7 +62,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     init {
         viewModelScope.launch {
             modelState.collect { state ->
-                if (state == ModelState.Ready) {
+                if (state == ModelState.Ready && modelStateOverride == null) {
                     AgentWarmService.start(getApplication())
                 }
             }
@@ -79,7 +93,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         }
         activeTraceId = container.traceRecorder.start(command)
         viewModelScope.launch {
-            when (val decision = container.commandRouter.route(command)) {
+            when (val decision = router.route(command)) {
                 is RoutingDecision.Action -> {
                     val plan = PlanFactory.fromAction(command, decision.request)
                     container.traceRecorder.decision(
@@ -92,15 +106,14 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                         planJson = plan.steps.toString(),
                         outcome = "pending_approval",
                     )
-                    if (container.planCoordinator.offer(plan)) {
+                    if (coordinator.offer(plan)) {
                         setStatus("Plan ready for review", speak = true)
                     } else {
                         setStatus("A plan is already pending")
                     }
                 }
                 is RoutingDecision.UiPlan -> {
-                    val service = AgentAccessibilityService.instance
-                    if (service == null) {
+                    if (!accessibilityAvailable) {
                         setStatus("Accessibility service is not enabled", speak = true)
                         activeTraceId?.let {
                             container.traceRecorder.finish(
@@ -120,9 +133,11 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                         }
                         return@launch
                     }
-                    UiPlanner(container.engineHolder)
-                        .plan(command, decision.goal, decision.app)
-                        .fold(
+                    val planResult = container.whatsAppUiPlanFactory
+                        .build(command, decision.goal, decision.app)
+                        ?.let { Result.success(it) }
+                        ?: UiPlanner(container.engineHolder).plan(command, decision.goal, decision.app)
+                    planResult.fold(
                             onSuccess = { plan ->
                                 container.traceRecorder.decision(
                                     activeTraceId ?: "",
@@ -134,7 +149,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                                     plan.steps.toString(),
                                     "pending_approval",
                                 )
-                                if (container.planCoordinator.offer(plan)) {
+                                if (coordinator.offer(plan)) {
                                     setStatus("Plan ready for review", speak = true)
                                 } else {
                                     setStatus("A plan is already pending")
@@ -199,11 +214,11 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun approvePlan() {
-        val plan = container.planCoordinator.approve() ?: return
+        val plan = coordinator.approve() ?: return
         viewModelScope.launch {
             container.safetyPolicy.checkPlan(plan).takeIf { it.blocked }?.let { verdict ->
                 val reason = verdict.reason ?: "Blocked by safety policy"
-                container.planCoordinator.fail(reason)
+                coordinator.fail(reason)
                 activeTraceId?.let {
                     container.traceRecorder.finish(it, plan.command, "blocked", plan.targetPackage, "blocked", reason)
                 }
@@ -245,7 +260,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             }
             when (result) {
                 is ActionExecution.Success -> {
-                    container.planCoordinator.complete()
+                    coordinator.complete()
                     activeTraceId?.let {
                         container.traceRecorder.step(
                             it, 0, step.toString(), null, "success", 0,
@@ -256,7 +271,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                     setStatus(result.message, speak = true)
                 }
                 is ActionExecution.NeedsPermission -> {
-                    container.planCoordinator.fail("Missing permission: ${result.permission}")
+                    coordinator.fail("Missing permission: ${result.permission}")
                     activeTraceId?.let {
                         container.traceRecorder.finish(
                             it, plan.command, "action", null, "needs_permission", result.permission,
@@ -267,7 +282,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 is ActionExecution.NeedsChoice -> {
                     val names = result.candidates.joinToString(", ") { it.name }
-                    container.planCoordinator.fail("Multiple contacts: $names")
+                    coordinator.fail("Multiple contacts: $names")
                     activeTraceId?.let {
                         container.traceRecorder.finish(
                             it, plan.command, "action", null, "needs_choice", names,
@@ -277,7 +292,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                     setStatus("Multiple contacts: $names", speak = true)
                 }
                 is ActionExecution.Failed -> {
-                    container.planCoordinator.fail(result.reason)
+                    coordinator.fail(result.reason)
                     activeTraceId?.let { traceId ->
                         captureFailure(traceId)
                     }
@@ -294,7 +309,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun cancelPlan() {
-        container.planCoordinator.cancel()
+        coordinator.cancel()
         activeTraceId?.let {
             container.traceRecorder.finish(it, "", "action", null, "cancelled")
         }
@@ -306,20 +321,20 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         val pending = planState.value as? PlanState.Pending ?: return
         if (correction.isBlank()) return
         viewModelScope.launch {
-            val replanned = PlanReplanner { prompt -> container.commandRouter.route(prompt) }
+            val replanned = PlanReplanner { prompt -> router.route(prompt) }
                 .replan(pending.plan, correction)
             if (replanned == null) {
                 setStatus("Could not re-plan; approve or cancel the current plan", speak = true)
             } else {
-                container.planCoordinator.cancel()
-                container.planCoordinator.offer(replanned)
+                coordinator.cancel()
+                coordinator.offer(replanned)
                 setStatus("Plan updated; approve it again", speak = true)
             }
         }
     }
 
     fun updatePlan(transform: (Plan) -> Plan) {
-        container.planCoordinator.update(transform)
+        coordinator.update(transform)
         setStatus("Plan updated; approve it again")
     }
 
@@ -332,9 +347,9 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun executeUiPlan(plan: Plan) {
-        val service = AgentAccessibilityService.instance
+        val service = if (accessibilityAvailable) AgentAccessibilityService.instance else null
         if (service == null) {
-            container.planCoordinator.fail("Accessibility service is not enabled")
+            coordinator.fail("Accessibility service is not enabled")
             setStatus("Accessibility service is not enabled", speak = true)
             return
         }
@@ -355,7 +370,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         ExecutionOverlay.stop(context)
         result.fold(
             onSuccess = {
-                container.planCoordinator.complete()
+                coordinator.complete()
                 activeTraceId?.let {
                     container.traceRecorder.finish(it, plan.command, "ui_plan", plan.targetPackage, "success")
                 }
@@ -363,7 +378,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                 setStatus("Plan complete", speak = true)
             },
             onFailure = { error ->
-                container.planCoordinator.fail(error.message ?: "UI plan failed")
+                coordinator.fail(error.message ?: "UI plan failed")
                 setStatus(error.message ?: "UI plan failed", speak = true)
                 activeTraceId?.let {
                     captureFailure(it)
@@ -381,6 +396,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         if (foreground != null && container.safetyPolicy.checkPackage(foreground).blocked) {
             return
         }
+        if (!accessibilityAvailable) return
         val service = AgentAccessibilityService.instance ?: return
         ScreenshotTaker(service, container.screenshotStore)
             .capture("$traceId.png")

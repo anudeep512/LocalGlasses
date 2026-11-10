@@ -32,6 +32,7 @@ class PlanExecutor(
             val before = gateway.observe()
             val success = when (step) {
                 is PlanStep.OpenApp -> gateway.launch(step.packageName)
+                is PlanStep.OpenUri -> gateway.launchUri(step.uri)
                 is PlanStep.Tap -> gateway.tap(step.target)
                 is PlanStep.TypeText -> gateway.type(step.target, step.text)
                 is PlanStep.Scroll -> gateway.scroll(step.direction)

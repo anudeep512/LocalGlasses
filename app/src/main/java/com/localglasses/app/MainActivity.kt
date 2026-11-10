@@ -139,6 +139,7 @@ private fun AgentPlaceholder(viewModel: AgentViewModel = viewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

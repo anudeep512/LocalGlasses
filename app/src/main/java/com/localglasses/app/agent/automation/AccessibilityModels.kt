@@ -88,4 +88,5 @@ interface AccessibilityGateway {
     fun type(target: NodeSelector, text: String): Boolean
     fun scroll(direction: Direction): Boolean
     fun launch(packageName: String): Boolean
+    fun launchUri(uri: String): Boolean
 }

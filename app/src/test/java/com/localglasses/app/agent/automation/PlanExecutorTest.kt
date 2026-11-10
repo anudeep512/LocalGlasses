@@ -102,5 +102,10 @@ class PlanExecutorTest {
             if (tapResult) version += 1
             return tapResult
         }
+
+        override fun launchUri(uri: String): Boolean {
+            if (tapResult) version += 1
+            return tapResult
+        }
     }
 }

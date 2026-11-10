@@ -45,6 +45,7 @@ class UiPlanner(private val engineHolder: EngineHolder) {
         val type = values["type"]?.toString()?.lowercase() ?: return null
         return when (type) {
             "open_app" -> values["package"]?.toString()?.let(PlanStep::OpenApp)
+            "open_uri" -> values["uri"]?.toString()?.let(PlanStep::OpenUri)
             "tap" -> PlanStep.Tap(selector(values))
             "type" -> {
                 val text = values["text"]?.toString() ?: return null
@@ -73,7 +74,7 @@ class UiPlanner(private val engineHolder: EngineHolder) {
         val SYSTEM_PROMPT = """
             You plan Android UI steps for LocalGlasses.
             Call submit_plan exactly once. Never answer in prose.
-            Allowed steps: open_app(package), tap(selector), type(selector,text),
+            Allowed steps: open_app(package), open_uri(uri), tap(selector), type(selector,text),
             scroll(direction), wait(millis).
             Open the target app first when it is not already open.
             Keep the plan minimal and do not include registry actions.
