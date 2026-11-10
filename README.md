@@ -156,6 +156,10 @@ temperature to ~88 °C during the run. CPU remains the default for reliability; 
 opt-in experiment. Command-matrix benchmark covers call, SMS, WhatsApp, YouTube, screen
 timeout, brightness, and a generic UI task.
 
+Soak: 21 commands across call, SMS, WhatsApp, YouTube, settings, and a UI task, with
+WhatsApp/YouTube switches and an engine unload/reload. Available RAM stayed ~3.0 GB,
+thermal status 1, battery 62%, no crash.
+
 ## Enabling automation access
 
 1. **Accessibility** — Settings → Apps → LocalGlasses → **Allow restricted settings**, then
