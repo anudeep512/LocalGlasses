@@ -29,25 +29,27 @@ When more than one contact matches, the system SHALL ask the user to choose befo
 - **THEN** the plan lists each candidate with name and number
 - **AND** no call or message is executed until one candidate is chosen
 
-### Requirement: Alias table
+### Requirement: Direct phone number
 
-The system SHALL resolve user-defined contact aliases before fuzzy contact matching, and SHALL let the user add, edit, and delete aliases locally.
+The system SHALL accept a dialable phone number as a call or message target without contact lookup.
 
-#### Scenario: Alias resolves
-- **WHEN** the alias "Amma" maps to a stored contact
-- **THEN** that contact is used without fuzzy matching
+#### Scenario: Direct number
+- **WHEN** the user says "call 7396512369"
+- **THEN** the plan shows that number
+- **AND** approval places the call without a contacts permission
 
-#### Scenario: Alias edited
-- **WHEN** the user changes the "Amma" alias to another contact
-- **THEN** subsequent commands use the new contact
+#### Scenario: Formatted number
+- **WHEN** the user says "call +91 73965-12369"
+- **THEN** the number is normalised for the plan
+- **AND** the call targets the same subscriber
 
 ### Requirement: Model cannot choose identity
 
 Contact candidates SHALL be resolved by the local resolver, never selected by the language model.
 
-#### Scenario: Model output contains a name only
-- **WHEN** the model returns a contact name or alias
-- **THEN** the resolver maps it to a contact
+#### Scenario: Model output contains a name or number
+- **WHEN** the model returns a contact name or a direct number
+- **THEN** the resolver maps it to a contact or dialable number
 - **AND** the model is not given candidate phone numbers to choose from
 
 ### Requirement: Send an SMS

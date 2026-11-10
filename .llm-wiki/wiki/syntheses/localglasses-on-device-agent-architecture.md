@@ -60,7 +60,7 @@ text command
 
 Fixed Kotlin executors with typed slots. The model only picks the action and fills arguments; it never invents behaviour.
 
-- **Call**: `READ_CONTACTS` + alias table + fuzzy match + disambiguation sheet, then `ACTION_CALL` with `CALL_PHONE`. The model never chooses an identity.
+- **Call**: direct phone number, or `READ_CONTACTS` + fuzzy match + disambiguation sheet, then `ACTION_CALL` with `CALL_PHONE`. The model never chooses an identity. There is no alias table.
 - **SMS**: `SmsManager` + `SEND_SMS`; draft shown with the resolved contact and number.
 - **WhatsApp**: deep link / prefill plus Accessibility steps for the send button. WhatsApp only; Telegram deferred.
 - **YouTube / YouTube Music**: `ACTION_SEARCH` / media intents plus Accessibility for the first result.

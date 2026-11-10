@@ -1,5 +1,10 @@
 # Grill Me Results
 
+> **Post-interview correction (2026-11-11):** contact aliases were removed. A command
+> resolves either a direct dialable phone number or a contact from the device contact list.
+> The number 7396512369 is not "Amma"; no nickname mapping is stored.
+
+
 Generated: 2026-11-10T18:36:29.023Z
 
 ## Plan

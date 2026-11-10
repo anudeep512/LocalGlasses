@@ -42,23 +42,23 @@
 - [ ] 4.8 Wire the real router to `AgentViewModel` behind a fake engine in tests, covering needs-model, needs-permission, no-match, pending, blocked, success, and failure results. Verify instrumentation tests for each state.
 - [x] 4.9 Document the command-to-approval flow and the "approval is confirmation" rule in `README.md`. Verify the described flow matches the UI.
 
-## 5. Encrypted Store and Aliases
+## 5. Encrypted Store
 
-- [x] 5.1 Add SQLCipher and implement `TraceDatabase` with a Keystore-wrapped passphrase, the trace/step/alias/notification schema, and a purge-and-recreate path for an invalidated key. Verify an instrumentation test opens the database with the key and fails without it.
-- [x] 5.2 Implement `AliasStore` CRUD in the encrypted database. Verify instrumentation tests for add, edit, delete, and lookup.
+- [x] 5.1 Add SQLCipher and implement `TraceDatabase` with a Keystore-wrapped passphrase, the trace/step/notification schema, and a purge-and-recreate path for an invalidated key. Verify an instrumentation test opens the database with the key and fails without it.
+- [x] 5.2 Remove contact alias storage; contacts resolve only by direct number or the device contact list. Verify no alias table or UI remains.
 - [x] 5.3 Implement the database failure path: log, surface a non-fatal warning, and offer purge/recreate. Verify an instrumentation test with a corrupted key reaches the recovery path without crashing.
 - [x] 5.4 Document key management and the `allowBackup="false"` consequence in `README.md`. Verify the documented behaviour matches the manifest.
 
 ## 6. Action Registry
 
 - [ ] 6.1 Implement `ActionRegistry`, parameter validators, and plan builders for the seven router actions. Verify unit tests for valid and invalid arguments for each action.
-- [x] 6.2 Implement `ContactsResolver` with alias precedence, normalised exact/prefix/contains matching, deterministic ordering, and multiple-match disambiguation. Verify unit tests with fake contacts for unique, multiple, alias, and none cases.
+- [x] 6.2 Implement `ContactsResolver` with direct-number handling, normalised exact/prefix/contains matching, deterministic ordering, and multiple-match disambiguation. Verify unit tests for direct number, unique, multiple, and none cases.
 - [x] 6.3 Implement the call action with `CALL_PHONE` checks and an `ACTION_CALL` step. Verify on device that an approved call reaches the dialer and that a missing permission produces `NeedsPermission`.
 - [x] 6.4 Implement the SMS action with the resolved recipient and message in the plan and `SmsManager` execution. Verify on device that an approved SMS is sent and that a missing permission does not send.
 - [x] 6.5 Implement the WhatsApp action with a prefilled conversation and a send step resolved by view id then content description, failing closed when not found. Verify on device that an approved message sends and that a removed selector produces "not sent".
 - [x] 6.6 Implement the YouTube and YouTube Music actions with package-specific search URIs and first-result play steps. Verify on device for both packages and with one package uninstalled.
 - [x] 6.7 Implement `SettingsController` for screen timeout, brightness, media volume, DND, rotation, flashlight, and open-page, with range validation and access checks. Verify unit tests for ranges and device checks for each write.
-- [ ] 6.8 Build the Settings and alias-editing screens: model state, aliases, trace actions, and special-access shortcuts. Verify manual add/edit/delete of an alias and that the next call uses it.
+- [ ] 6.8 Build the Settings screen: model state, trace actions, and special-access shortcuts. Verify the screen is reachable and the controls work.
 - [x] 6.9 Document supported actions, required permissions, and excluded apps in `README.md`. Verify the list matches the registry.
 
 ## 7. Accessibility Automation
@@ -82,7 +82,7 @@
 
 ## 9. Integration and Device Validation
 
-- [ ] 9.1 Run the call and SMS flows end to end with an alias such as "Amma", including multiple-match disambiguation. Verify the call/SMS log matches the approved plan.
+- [ ] 9.1 Run the call and SMS flows end to end with a direct number and a contact-list name, including multiple-match disambiguation. Verify the call/SMS log matches the approved plan.
 - [x] 9.2 Run the WhatsApp send and YouTube play flows end to end from typed command through approval. Verify the target app performs the approved action and the status matches.
 - [ ] 9.3 Run all seven settings actions on the device, including a missing write-settings and DND access case. Verify each value before and after and that no partial write occurs.
 - [ ] 9.4 Verify the default-assistant entry, the camera tab, TTS output, and the overlay stop control in one session. Verify the agent opens from the assist gesture and the camera still streams.

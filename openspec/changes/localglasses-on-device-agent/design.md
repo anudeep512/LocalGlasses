@@ -68,7 +68,7 @@ Router tools use only `@Tool`-supported parameter types (`String`, `Int`, `Boole
 
 ```kotlin
 class RouterTools(private val sink: ToolCallSink) : ToolSet {
-    @Tool("Call a contact by name or saved alias") fun callContact(
+    @Tool("Call a contact or phone number") fun callContact(
         @ToolParam("Contact name exactly as the user said it") contact: String,
     ): String = sink.record("call_contact", mapOf("contact" to contact))
 
@@ -185,11 +185,9 @@ interface RegistryAction {
 }
 ```
 
-**Call.** `ContactsResolver` queries `ContactsContract.CommonDataKinds.Phone` with `READ_CONTACTS`.
+**Call.** `ContactsResolver` resolves a direct dialable number first, then queries `ContactsContract.CommonDataKinds.Phone` with `READ_CONTACTS`.
 
-Resolution order: exact alias (normalised), exact display name, prefix, contains; deduplicate by contact id + number; sort deterministically. Return `Unique`, `Multiple`, or `None`. Never pass candidate numbers to the model.
-
-Aliases live in the encrypted database (`aliases(alias PRIMARY KEY, contact_id, display_name, phone_e164)`) and are edited in Settings. Storing them encrypted avoids a second sensitive store.
+Resolution order: direct number, exact display name, prefix, contains; deduplicate by contact id + number; sort deterministically. Return `Unique`, `Multiple`, or `None`. A direct number does not require the contacts permission. Never pass candidate numbers to the model.
 
 Call execution uses `Intent.ACTION_CALL` with a `tel:` URI and `CALL_PHONE`. If the permission is missing, report it; do not fall back to `ACTION_DIAL` silently. `PlanExecutor` launches from the foreground activity; background activity starts are a known platform limit.
 
@@ -334,7 +332,6 @@ traces(id TEXT PRIMARY KEY, started_at INTEGER, finished_at INTEGER, command TEX
 trace_steps(id INTEGER PRIMARY KEY AUTOINCREMENT, trace_id TEXT, ordinal INTEGER,
             step_json TEXT, screen_text TEXT, post_condition TEXT, outcome TEXT,
             duration_ms INTEGER)
-aliases(alias TEXT PRIMARY KEY, contact_id TEXT, display_name TEXT, phone_e164 TEXT)
 notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, package TEXT, posted_at INTEGER,
               channel TEXT, group_key TEXT)
 ```
@@ -413,7 +410,7 @@ Sideload note: Android 13+ requires "Allow restricted settings" in App info befo
 
 - **Agent**: text field, submit, status, pending plan sheet, permission checklist (only when something is missing), model download/benchmark state, settings entry.
 - **Camera**: the existing `GlassesScreen`, extracted from `MainActivity` into `ui/GlassesScreen.kt`.
-- **Settings**: model state, aliases, trace export/purge, special-access shortcuts, safety block list (read-only).
+- **Settings**: model state, trace export/purge, special-access shortcuts, safety block list (read-only).
 
 Use existing Compose Material3 and `lifecycle-viewmodel-compose`. Add `lifecycle-runtime-compose` for `collectAsStateWithLifecycle`. Do not add a navigation library for two tabs; a simple `selectedTab` state is enough.
 
@@ -439,7 +436,7 @@ Also add JUnit 4.13.2, `kotlinx-coroutines-test`, `androidx.test.ext:junit`, and
 Pure logic gets JVM unit tests:
 
 - command routing: no-match suggestions, multiple tool calls, invalid arguments;
-- contact resolution: alias precedence, duplicates, multiple matches;
+- contact resolution: direct numbers, duplicates, multiple matches;
 - redaction: OTP, bearer token, API key, password exclusion;
 - safety: every hard-block category, unknown payment screen, plan re-check after edit;
 - settings validation ranges;

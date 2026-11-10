@@ -23,7 +23,7 @@ LocalGlasses is a working glasses camera app, but every phone task still require
 
 - `agent/commands`: command entry surfaces (agent home, camera tab, default-assistant activity), typed input, one-task-per-command routing, no-match suggestions, task-scoped state, and on-screen/TTS status.
 - `agent/model-runtime`: Gemma 4 E2B acquisition and checksum verification, LiteRT-LM engine lifecycle, warm foreground service, memory-pressure unload, and constrained tool invocation.
-- `agent/action-registry`: deterministic device actions for calls, SMS, WhatsApp, YouTube/YT Music, curated system settings, and local contact alias resolution.
+- `agent/action-registry`: deterministic device actions for calls, SMS, WhatsApp, YouTube/YT Music, curated system settings, and direct-number or device-contact resolution.
 - `agent/ui-automation`: AccessibilityService observation, plan generation for generic tasks, step execution, and progress-based loop guards.
 - `agent/plan-approval`: editable plan preview for every action, approval/rejection, structured edits, natural-language re-plan, and the over-app execution overlay with a stop control.
 - `agent/safety-policy`: absolute hard-block categories, secure-screen aborts, and notification-content limits, enforced before planning and at every step.

@@ -107,7 +107,7 @@ Spotify, alarms/timers, Telegram, and arbitrary app launching are not supported.
 
 ## Trace data
 
-- Tables: `traces`, `trace_steps`, `aliases`, `notifications` in the encrypted database.
+- Tables: `traces`, `trace_steps`, `notifications` in the encrypted database.
 - A trace records the command, resolved task, target package, plan, model/tool JSON,
   step outcome, timing, and any screen text touched.
 - Failure screenshots are the only images; they are capped and excluded for secure and
