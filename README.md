@@ -51,8 +51,10 @@ export ANDROID_HOME=$HOME/Android/Sdk
 ```
 app/src/main/java/com/localglasses/app/
 ├── LocalGlassesApp.kt          Application, DAT init, AgentContainer
-├── MainActivity.kt             Agent / Camera / Settings tab shell
+├── MainActivity.kt             Agent / Camera / Stats / Settings tab shell
 ├── ui/GlassesScreen.kt         Camera tab: DAT session, preview, capture
+├── ui/stats/                   Live metrics blocks, Stats tab, sparklines
+├── agent/telemetry/            Device, CPU, thermal, battery, and inference metrics
 ├── agent/AgentContainer.kt     Manual service locator for the agent layer
 ├── session/SessionViewModel.kt DeviceSession + Camera lifecycle
 ├── capture/VideoRecorder.kt    YUV -> H.264 via MediaCodec + MediaMuxer
@@ -81,6 +83,56 @@ second from the runtime. The CPU backend is the current default; the GPU `.liter
 an optional benchmark comparison. Model-card numbers from Snapdragon devices do not transfer to
 this MediaTek phone.
 
+## Stats for nerds
+
+The Stats surfaces are gated by a compile-time flag in `app/build.gradle.kts`:
+
+```kotlin
+buildConfigField("boolean", "STATS_ENABLED", "true")
+```
+
+When `STATS_ENABLED` is false, the Agent-tab stats blocks and the Stats tab are removed from the
+build. There is no runtime preference.
+
+On the Agent tab, one **Stats for nerds** block sits below the plan. It is collapsed by default
+and auto-expands when a request starts. Its request-metrics section shows the live device sample
+while the model is working, then the completed request's inference metrics, and keeps the last
+completed request visible until the next command starts. The same block shows the device model,
+SoC, ABIs, Android version, memory class, model id, model file size, backend, engine loaded state,
+and the explicit `GPU: No public Android API available` line.
+
+The Stats tab refreshes live memory, CPU, thermal, battery, storage, and model state once per
+second while it is visible. It also shows:
+
+- summary cards: requests, success rate, p50/p95 latency, average TTFT, average decode tok/s,
+  peak app memory, average device CPU, and latest thermal status;
+- latency, decode, memory, and CPU sparklines;
+- an expandable table of requests in reverse chronological order, with a 24h default range and
+  7d/all-time toggles.
+
+Sampling runs only while the Agent or Stats surface is visible and stops when the app is
+backgrounded. All readings are best-effort: a restricted `/proc`, sysfs, thermal, or battery
+source becomes `Unavailable`; it is never replaced with zero or an estimate. App CPU is top-style
+relative to one core and can exceed 100%.
+
+### Per-request metrics
+
+Every trace stores one metrics snapshot in `trace_metrics`, linked by trace id. Inference fields
+are null when the model was not invoked, such as a safety block or cancelled request. Device
+metrics are still stored when available. The snapshot includes:
+
+- model id, backend, engine loaded state, and engine initialization time;
+- prompt/completion token counts, TTFT, prefill/decode tokens per second, and inference latency;
+- device/app memory, device/app CPU, per-core frequency, thread count, thermal status, battery
+  temperature/level/charging, free storage, and device specification values;
+- peak app PSS, peak device CPU, worst thermal status, and command duration.
+
+`TraceRecorder` writes the snapshot at decision and finish time. Existing databases are upgraded
+additively: old traces remain readable with no metrics row. The existing export includes the
+complete metrics object in JSONL and a readable metrics block in Markdown; the existing purge
+deletes metrics with the parent trace. Metrics inherit the trace retention policy and remain
+on-device.
+
 ## Agent commands and approval
 
 1. Type a command in the Agent tab. One command resolves to one task.
@@ -107,9 +159,11 @@ Spotify, alarms/timers, Telegram, and arbitrary app launching are not supported.
 
 ## Trace data
 
-- Tables: `traces`, `trace_steps`, `notifications` in the encrypted database.
+- Tables: `traces`, `trace_steps`, `trace_metrics`, `notifications` in the encrypted database.
 - A trace records the command, resolved task, target package, plan, model/tool JSON,
   step outcome, timing, and any screen text touched.
+- Each completed or blocked trace may have one `trace_metrics` snapshot. It is included in the
+  JSONL/Markdown export and deleted by the same purge action.
 - Failure screenshots are the only images; they are capped and excluded for secure and
   hard-blocked screens.
 - Retention: kept until manual purge. Export writes JSONL and Markdown to

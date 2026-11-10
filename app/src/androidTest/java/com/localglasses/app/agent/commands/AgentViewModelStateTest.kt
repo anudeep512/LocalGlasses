@@ -13,6 +13,9 @@ import com.localglasses.app.agent.model.InferenceReply
 import com.localglasses.app.agent.model.InferenceToolCall
 import com.localglasses.app.agent.model.ModelState
 import com.localglasses.app.agent.safety.SafetyPolicy
+import com.localglasses.app.agent.telemetry.DeviceSnapshot
+import com.localglasses.app.agent.telemetry.MetricsCollector
+import com.localglasses.app.agent.telemetry.MetricsSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -57,6 +60,7 @@ class AgentViewModelStateTest {
         advanceUntilIdle()
         assertTrue(viewModel.planState.value is PlanState.Pending)
         assertTrue(viewModel.uiState.value.status.contains("Plan ready"))
+        assertEquals("test-model", viewModel.lastRequestMetrics.value?.inference?.modelId)
 
         viewModel.onCommandChange("call Appa")
         viewModel.submit()
@@ -86,6 +90,8 @@ class AgentViewModelStateTest {
 
         assertTrue(viewModel.uiState.value.status.contains("Blocked"))
         assertEquals(0, fake.loads)
+        assertEquals(null, viewModel.lastRequestMetrics.value?.inference)
+        assertEquals(1L, viewModel.lastRequestMetrics.value?.device?.deviceTotalBytes)
     }
 
     @Test
@@ -117,6 +123,38 @@ class AgentViewModelStateTest {
         assertEquals(PlanState.Idle, viewModel.planState.value)
     }
 
+    @Test
+    fun noMatchFinishesWithDeviceAndInferenceMetrics() = runTest {
+        val viewModel = viewModel(reply = InferenceReply("", emptyList()))
+
+        viewModel.onCommandChange("make me a sandwich")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        val metrics = viewModel.lastRequestMetrics.value
+        assertEquals("test-model", metrics?.inference?.modelId)
+        assertEquals(1L, metrics?.device?.deviceTotalBytes)
+        assertTrue((metrics?.commandDurationMs ?: -1) >= 0)
+    }
+
+    @Test
+    fun cancelPlanFinishesWithMetrics() = runTest {
+        val viewModel = viewModel(
+            reply = InferenceReply(
+                "",
+                listOf(InferenceToolCall("call_contact", mapOf("contact" to "Amma"))),
+            ),
+        )
+
+        viewModel.onCommandChange("call Amma")
+        viewModel.submit()
+        advanceUntilIdle()
+        viewModel.cancelPlan()
+        advanceUntilIdle()
+
+        assertEquals("test-model", viewModel.lastRequestMetrics.value?.inference?.modelId)
+    }
+
     private fun viewModel(
         reply: InferenceReply? = null,
         fake: FakeEngine = FakeEngine(reply),
@@ -124,12 +162,19 @@ class AgentViewModelStateTest {
         accessibility: Boolean = true,
     ): AgentViewModel {
         val holder = EngineHolder({ fake }, Dispatchers.Unconfined)
+        val metrics = MetricsCollector(
+            object : MetricsSource {
+                override fun sample() = DeviceSnapshot(deviceTotalBytes = 1L)
+            },
+            ioDispatcher = Dispatchers.Unconfined,
+        )
         return AgentViewModel(
             app = app,
             routerOverride = CommandRouter(holder, SafetyPolicy()),
             modelStateOverride = MutableStateFlow(modelState),
             planCoordinatorOverride = PlanCoordinator(),
             accessibilityOverride = accessibility,
+            metricsCollectorOverride = metrics,
         )
     }
 
@@ -141,6 +186,8 @@ class AgentViewModelStateTest {
         private var loaded = false
 
         override val isLoaded: Boolean get() = loaded
+        override val modelId: String = "test-model"
+        override val backendName: String = "CPU"
 
         override fun load() {
             loads += 1

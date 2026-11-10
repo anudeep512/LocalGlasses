@@ -6,6 +6,7 @@ import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.ExperimentalApi
+import com.google.ai.edge.litertlm.ExperimentalFlags
 import com.google.ai.edge.litertlm.ToolProvider
 import java.io.File
 
@@ -14,6 +15,8 @@ class LiteRtEngine(
     private val modelFile: File,
     private val cacheDir: File,
     private val backend: Backend = Backend.CPU(),
+    override val modelId: String = modelFile.nameWithoutExtension,
+    override val backendName: String = "CPU",
 ) : InferenceEngine {
 
     private var engine: Engine? = null
@@ -23,6 +26,8 @@ class LiteRtEngine(
 
     override fun load() {
         check(engine == null) { "engine is already loaded" }
+        // BenchmarkInfo is only populated when the native benchmark collector is enabled.
+        ExperimentalFlags.enableBenchmark = true
         val config = EngineConfig(
             modelPath = modelFile.absolutePath,
             backend = backend,

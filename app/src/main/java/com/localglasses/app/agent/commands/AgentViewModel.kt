@@ -20,6 +20,12 @@ import com.localglasses.app.agent.approval.PlanStep
 import com.localglasses.app.agent.model.AgentWarmService
 import com.localglasses.app.agent.PermissionsCoordinator
 import com.localglasses.app.agent.model.ModelState
+import com.localglasses.app.agent.telemetry.DeviceSnapshot
+import com.localglasses.app.agent.telemetry.InferenceMetrics
+import com.localglasses.app.agent.telemetry.MetricsCollector
+import com.localglasses.app.agent.telemetry.RequestMetrics
+import com.localglasses.app.agent.telemetry.RequestMetricsSession
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,11 +46,13 @@ class AgentViewModel @JvmOverloads constructor(
     private val modelStateOverride: StateFlow<ModelState>? = null,
     private val planCoordinatorOverride: PlanCoordinator? = null,
     private val accessibilityOverride: Boolean? = null,
+    private val metricsCollectorOverride: MetricsCollector? = null,
 ) : AndroidViewModel(app) {
 
     private val container = (app as LocalGlassesApp).agentContainer
     private val router = routerOverride ?: container.commandRouter
     private val coordinator = planCoordinatorOverride ?: container.planCoordinator
+    private val metricsCollector = metricsCollectorOverride ?: container.metricsCollector
 
     val modelState: StateFlow<ModelState> = modelStateOverride ?: container.modelRepository.state
     val planState: StateFlow<PlanState> = coordinator.state
@@ -57,7 +65,16 @@ class AgentViewModel @JvmOverloads constructor(
     private val _uiState = MutableStateFlow(AgentUiState())
     val uiState: StateFlow<AgentUiState> = _uiState.asStateFlow()
 
+    private val _liveMetrics = MutableStateFlow<DeviceSnapshot?>(null)
+    val liveMetrics: StateFlow<DeviceSnapshot?> = _liveMetrics.asStateFlow()
+
+    private val _lastRequestMetrics = MutableStateFlow<RequestMetrics?>(null)
+    val lastRequestMetrics: StateFlow<RequestMetrics?> = _lastRequestMetrics.asStateFlow()
+
     private var activeTraceId: String? = null
+    private var activeMetricsSession: RequestMetricsSession? = null
+    private var activeInferenceMetrics: InferenceMetrics? = null
+    private var commandStartedAtMs: Long? = null
 
     init {
         viewModelScope.launch {
@@ -72,6 +89,14 @@ class AgentViewModel @JvmOverloads constructor(
     fun onCommandChange(value: String) {
         _uiState.update { it.copy(command = value) }
     }
+
+    /** The visible Agent surface owns collection and forwards each sample here. */
+    fun onLiveSample(snapshot: DeviceSnapshot) {
+        _liveMetrics.value = snapshot
+        activeMetricsSession?.observe(snapshot)
+    }
+
+    fun metricsStream(): Flow<DeviceSnapshot> = metricsCollector.stream()
 
     fun submit() {
         val command = _uiState.value.command.trim()
@@ -91,13 +116,18 @@ class AgentViewModel @JvmOverloads constructor(
         _uiState.update {
             it.copy(isSubmitting = true, status = "Thinking…", suggestions = emptyList())
         }
+        _lastRequestMetrics.value = null
+        activeInferenceMetrics = null
+        commandStartedAtMs = System.currentTimeMillis()
         activeTraceId = container.traceRecorder.start(command)
+
         viewModelScope.launch {
+            activeMetricsSession = metricsCollector.beginRequest()
             when (val decision = router.route(command)) {
                 is RoutingDecision.Action -> {
+                    activeInferenceMetrics = decision.metrics
                     val plan = PlanFactory.fromAction(command, decision.request)
-                    container.traceRecorder.decision(
-                        id = activeTraceId ?: return@launch,
+                    recordDecision(
                         command = command,
                         taskType = "action",
                         targetPackage = null,
@@ -105,6 +135,7 @@ class AgentViewModel @JvmOverloads constructor(
                         toolCallsJson = decision.request.toString(),
                         planJson = plan.steps.toString(),
                         outcome = "pending_approval",
+                        inference = decision.metrics,
                     )
                     if (coordinator.offer(plan)) {
                         setStatus("Plan ready for review", speak = true)
@@ -113,24 +144,19 @@ class AgentViewModel @JvmOverloads constructor(
                     }
                 }
                 is RoutingDecision.UiPlan -> {
+                    activeInferenceMetrics = decision.metrics
                     if (!accessibilityAvailable) {
                         setStatus("Accessibility service is not enabled", speak = true)
-                        activeTraceId?.let {
-                            container.traceRecorder.finish(
-                                it, command, "ui_plan", decision.app, "needs_permission",
-                                "accessibility",
-                            )
-                        }
+                        finishActiveTrace(
+                            command, "ui_plan", decision.app, "needs_permission", "accessibility",
+                        )
                         return@launch
                     }
                     if (!PermissionsCoordinator.overlayGranted(getApplication())) {
                         setStatus("Display-over-other-apps permission is required", speak = true)
-                        activeTraceId?.let {
-                            container.traceRecorder.finish(
-                                it, command, "ui_plan", decision.app, "needs_permission",
-                                "overlay",
-                            )
-                        }
+                        finishActiveTrace(
+                            command, "ui_plan", decision.app, "needs_permission", "overlay",
+                        )
                         return@launch
                     }
                     val planResult = container.whatsAppUiPlanFactory
@@ -138,44 +164,44 @@ class AgentViewModel @JvmOverloads constructor(
                         ?.let { Result.success(it) }
                         ?: UiPlanner(container.engineHolder).plan(command, decision.goal, decision.app)
                     planResult.fold(
-                            onSuccess = { plan ->
-                                container.traceRecorder.decision(
-                                    activeTraceId ?: "",
-                                    command,
-                                    "ui_plan",
-                                    decision.app,
-                                    UiPlanner.SYSTEM_PROMPT,
-                                    decision.goal,
-                                    plan.steps.toString(),
-                                    "pending_approval",
-                                )
-                                if (coordinator.offer(plan)) {
-                                    setStatus("Plan ready for review", speak = true)
-                                } else {
-                                    setStatus("A plan is already pending")
-                                }
-                            },
-                            onFailure = { error ->
-                                setStatus(
-                                    "Could not plan: ${error.message}",
-                                    speak = true,
-                                )
-                                activeTraceId?.let {
-                                    container.traceRecorder.finish(
-                                        it, command, "ui_plan", decision.app, "failed",
-                                        error.message,
-                                    )
-                                }
-                            },
-                        )
+                        onSuccess = { plan ->
+                            recordDecision(
+                                command = command,
+                                taskType = "ui_plan",
+                                targetPackage = decision.app,
+                                modelPrompt = UiPlanner.SYSTEM_PROMPT,
+                                toolCallsJson = decision.goal,
+                                planJson = plan.steps.toString(),
+                                outcome = "pending_approval",
+                                inference = decision.metrics,
+                            )
+                            if (coordinator.offer(plan)) {
+                                setStatus("Plan ready for review", speak = true)
+                            } else {
+                                setStatus("A plan is already pending")
+                            }
+                        },
+                        onFailure = { error ->
+                            setStatus("Could not plan: ${error.message}", speak = true)
+                            finishActiveTrace(
+                                command, "ui_plan", decision.app, "failed", error.message,
+                            )
+                        },
+                    )
                 }
                 is RoutingDecision.NoMatch -> {
-                    activeTraceId?.let {
-                        container.traceRecorder.decision(
-                            it, command, "no_match", null, null, null, null, "no_match",
-                        )
-                        container.traceRecorder.finish(it, command, "no_match", null, "no_match")
-                    }
+                    activeInferenceMetrics = decision.metrics
+                    recordDecision(
+                        command = command,
+                        taskType = "no_match",
+                        targetPackage = null,
+                        modelPrompt = null,
+                        toolCallsJson = null,
+                        planJson = null,
+                        outcome = "no_match",
+                        inference = decision.metrics,
+                    )
+                    finishActiveTrace(command, "no_match", null, "no_match")
                     val suggestions = decision.suggestions.joinToString(", ")
                     setStatus(
                         buildString {
@@ -187,25 +213,33 @@ class AgentViewModel @JvmOverloads constructor(
                     _uiState.update { it.copy(suggestions = decision.suggestions) }
                 }
                 is RoutingDecision.Blocked -> {
-                    activeTraceId?.let {
-                        container.traceRecorder.decision(
-                            it, command, "blocked", null, null, null, null, "blocked",
-                        )
-                        container.traceRecorder.finish(
-                            it, command, "blocked", null, "blocked", decision.reason,
-                        )
-                    }
+                    activeInferenceMetrics = decision.metrics
+                    recordDecision(
+                        command = command,
+                        taskType = "blocked",
+                        targetPackage = null,
+                        modelPrompt = null,
+                        toolCallsJson = null,
+                        planJson = null,
+                        outcome = "blocked",
+                        inference = decision.metrics,
+                    )
+                    finishActiveTrace(command, "blocked", null, "blocked", decision.reason)
                     setStatus("Blocked: ${decision.reason}", speak = true)
                 }
                 is RoutingDecision.Failed -> {
-                    activeTraceId?.let {
-                        container.traceRecorder.decision(
-                            it, command, "failed", null, null, null, null, "failed",
-                        )
-                        container.traceRecorder.finish(
-                            it, command, "failed", null, "failed", decision.reason,
-                        )
-                    }
+                    activeInferenceMetrics = decision.metrics
+                    recordDecision(
+                        command = command,
+                        taskType = "failed",
+                        targetPackage = null,
+                        modelPrompt = null,
+                        toolCallsJson = null,
+                        planJson = null,
+                        outcome = "failed",
+                        inference = decision.metrics,
+                    )
+                    finishActiveTrace(command, "failed", null, "failed", decision.reason)
                     setStatus("Failed: ${decision.reason}", speak = true)
                 }
             }
@@ -219,10 +253,7 @@ class AgentViewModel @JvmOverloads constructor(
             container.safetyPolicy.checkPlan(plan).takeIf { it.blocked }?.let { verdict ->
                 val reason = verdict.reason ?: "Blocked by safety policy"
                 coordinator.fail(reason)
-                activeTraceId?.let {
-                    container.traceRecorder.finish(it, plan.command, "blocked", plan.targetPackage, "blocked", reason)
-                }
-                activeTraceId = null
+                finishActiveTrace(plan.command, "blocked", plan.targetPackage, "blocked", reason)
                 setStatus("Blocked: $reason", speak = true)
                 return@launch
             }
@@ -261,47 +292,31 @@ class AgentViewModel @JvmOverloads constructor(
             when (result) {
                 is ActionExecution.Success -> {
                     coordinator.complete()
-                    activeTraceId?.let {
+                    activeTraceId?.let { traceId ->
                         container.traceRecorder.step(
-                            it, 0, step.toString(), null, "success", 0,
+                            traceId, 0, step.toString(), null, "success", 0,
                         )
-                        container.traceRecorder.finish(it, plan.command, "action", null, "success")
                     }
-                    activeTraceId = null
+                    finishActiveTrace(plan.command, "action", null, "success")
                     setStatus(result.message, speak = true)
                 }
                 is ActionExecution.NeedsPermission -> {
                     coordinator.fail("Missing permission: ${result.permission}")
-                    activeTraceId?.let {
-                        container.traceRecorder.finish(
-                            it, plan.command, "action", null, "needs_permission", result.permission,
-                        )
-                    }
-                    activeTraceId = null
+                    finishActiveTrace(
+                        plan.command, "action", null, "needs_permission", result.permission,
+                    )
                     setStatus("Missing permission: ${result.permission}", speak = true)
                 }
                 is ActionExecution.NeedsChoice -> {
                     val names = result.candidates.joinToString(", ") { it.name }
                     coordinator.fail("Multiple contacts: $names")
-                    activeTraceId?.let {
-                        container.traceRecorder.finish(
-                            it, plan.command, "action", null, "needs_choice", names,
-                        )
-                    }
-                    activeTraceId = null
+                    finishActiveTrace(plan.command, "action", null, "needs_choice", names)
                     setStatus("Multiple contacts: $names", speak = true)
                 }
                 is ActionExecution.Failed -> {
                     coordinator.fail(result.reason)
-                    activeTraceId?.let { traceId ->
-                        captureFailure(traceId)
-                    }
-                    activeTraceId?.let {
-                        container.traceRecorder.finish(
-                            it, plan.command, "action", null, "failed", result.reason,
-                        )
-                    }
-                    activeTraceId = null
+                    activeTraceId?.let { traceId -> captureFailure(traceId) }
+                    finishActiveTrace(plan.command, "action", null, "failed", result.reason)
                     setStatus(result.reason, speak = true)
                 }
             }
@@ -309,11 +324,9 @@ class AgentViewModel @JvmOverloads constructor(
     }
 
     fun cancelPlan() {
+        val command = (planState.value as? PlanState.Pending)?.plan?.command.orEmpty()
         coordinator.cancel()
-        activeTraceId?.let {
-            container.traceRecorder.finish(it, "", "action", null, "cancelled")
-        }
-        activeTraceId = null
+        finishActiveTrace(command, "action", null, "cancelled")
         setStatus("Plan cancelled", speak = true)
     }
 
@@ -350,6 +363,9 @@ class AgentViewModel @JvmOverloads constructor(
         val service = if (accessibilityAvailable) AgentAccessibilityService.instance else null
         if (service == null) {
             coordinator.fail("Accessibility service is not enabled")
+            finishActiveTrace(
+                plan.command, "ui_plan", plan.targetPackage, "needs_permission", "accessibility",
+            )
             setStatus("Accessibility service is not enabled", speak = true)
             return
         }
@@ -371,24 +387,80 @@ class AgentViewModel @JvmOverloads constructor(
         result.fold(
             onSuccess = {
                 coordinator.complete()
-                activeTraceId?.let {
-                    container.traceRecorder.finish(it, plan.command, "ui_plan", plan.targetPackage, "success")
-                }
-                activeTraceId = null
+                finishActiveTrace(plan.command, "ui_plan", plan.targetPackage, "success")
                 setStatus("Plan complete", speak = true)
             },
             onFailure = { error ->
                 coordinator.fail(error.message ?: "UI plan failed")
                 setStatus(error.message ?: "UI plan failed", speak = true)
-                activeTraceId?.let {
-                    captureFailure(it)
-                    container.traceRecorder.finish(
-                        it, plan.command, "ui_plan", plan.targetPackage, "failed", error.message,
-                    )
-                }
-                activeTraceId = null
+                activeTraceId?.let { traceId -> captureFailure(traceId) }
+                finishActiveTrace(
+                    plan.command, "ui_plan", plan.targetPackage, "failed", error.message,
+                )
             },
         )
+    }
+
+    private fun recordDecision(
+        command: String,
+        taskType: String?,
+        targetPackage: String?,
+        modelPrompt: String?,
+        toolCallsJson: String?,
+        planJson: String?,
+        outcome: String,
+        inference: InferenceMetrics?,
+    ) {
+        val id = activeTraceId ?: return
+        val metrics = snapshotMetrics(inference)
+        container.traceRecorder.decision(
+            id = id,
+            command = command,
+            taskType = taskType,
+            targetPackage = targetPackage,
+            modelPrompt = modelPrompt,
+            toolCallsJson = toolCallsJson,
+            planJson = planJson,
+            outcome = outcome,
+            metrics = metrics,
+        )
+        _lastRequestMetrics.value = metrics
+    }
+
+    private fun finishActiveTrace(
+        command: String,
+        taskType: String?,
+        targetPackage: String?,
+        outcome: String,
+        errorReason: String? = null,
+    ) {
+        val id = activeTraceId
+        val metrics = snapshotMetrics(activeInferenceMetrics)
+        if (id != null) {
+            container.traceRecorder.finish(
+                id = id,
+                command = command,
+                taskType = taskType,
+                targetPackage = targetPackage,
+                outcome = outcome,
+                errorReason = errorReason,
+                metrics = metrics,
+            )
+        }
+        if (metrics != null) _lastRequestMetrics.value = metrics
+        activeTraceId = null
+        activeMetricsSession = null
+        activeInferenceMetrics = null
+        commandStartedAtMs = null
+    }
+
+    private fun snapshotMetrics(inference: InferenceMetrics?): RequestMetrics? {
+        val session = activeMetricsSession ?: return null
+        val startedAt = commandStartedAtMs
+        val duration = startedAt?.let {
+            (System.currentTimeMillis() - it).coerceAtLeast(0L)
+        } ?: 0L
+        return session.finish(inference, durationMs = duration)
     }
 
     private fun captureFailure(traceId: String) {

@@ -1,6 +1,7 @@
 package com.localglasses.app.agent.trace
 
 import com.localglasses.app.agent.safety.Redactor
+import com.localglasses.app.agent.telemetry.RequestMetrics
 import java.util.UUID
 
 /**
@@ -31,6 +32,7 @@ class TraceRecorder(private val database: TraceDatabase) {
         toolCallsJson: String?,
         planJson: String?,
         outcome: String,
+        metrics: RequestMetrics? = null,
     ) {
         database.insertTrace(
             id = id,
@@ -42,6 +44,11 @@ class TraceRecorder(private val database: TraceDatabase) {
             toolCallsJson = toolCallsJson?.let(Redactor::redact),
             planJson = planJson?.let(Redactor::redact),
         )
+        metrics?.let { database.upsertMetrics(id, it) }
+    }
+
+    fun metrics(traceId: String, metrics: RequestMetrics) {
+        database.upsertMetrics(traceId, metrics)
     }
 
     fun step(
@@ -70,11 +77,13 @@ class TraceRecorder(private val database: TraceDatabase) {
         targetPackage: String?,
         outcome: String,
         errorReason: String? = null,
+        metrics: RequestMetrics? = null,
     ) {
         database.updateOutcome(
             id = id,
             outcome = outcome,
             errorReason = errorReason?.let(Redactor::redact),
         )
+        metrics?.let { database.upsertMetrics(id, it) }
     }
 }

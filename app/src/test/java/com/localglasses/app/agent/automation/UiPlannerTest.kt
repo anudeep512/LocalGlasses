@@ -53,6 +53,8 @@ class UiPlannerTest {
     private class FakeEngine(private val reply: InferenceReply) : InferenceEngine {
         private var loaded = false
         override val isLoaded: Boolean get() = loaded
+        override val modelId: String = "test-model"
+        override val backendName: String = "CPU"
         override fun load() { loaded = true }
         override fun close() { loaded = false }
         override fun conversation(

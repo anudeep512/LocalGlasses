@@ -20,6 +20,8 @@ interface InferenceConversation : AutoCloseable {
 
 interface InferenceEngine : AutoCloseable {
     val isLoaded: Boolean
+    val modelId: String
+    val backendName: String
 
     fun load()
 

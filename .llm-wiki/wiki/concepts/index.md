@@ -4,6 +4,7 @@
 
 - [Accessibility-driven Android agent safety model](accessibility-driven-android-agent-safety-model.md)
 - [AGP 9 built-in Kotlin](agp-9-built-in-kotlin.md)
+- [Android agent ANR: main-thread LiteRT inference](android-agent-anr-main-thread-litert-inference.md)
 - [DAT AI-assisted setup](dat-ai-assisted-setup.md)
 - [DAT Developer Mode](dat-developer-mode.md)
 - [DAT real-hardware gotchas (Android)](dat-real-hardware-gotchas.md)

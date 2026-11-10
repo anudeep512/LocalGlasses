@@ -2,6 +2,11 @@
 
 ## 2026-11-10
 
+- **ensure\_page**: {"page_type":"concept","path":"concepts/android-agent-anr-main-thread-litert-inference","title":"Android agent ANR: main-thread LiteRT inference"}
+- **retro**: {"category":"android","slug":"litert-conversation-benchmarkinfo-null","title":"LiteRT conversation BenchmarkInfo can be null"}
+- **retro**: {"category":"android","slug":"android-proc-stat-selinux-inference-metrics","title":"Android app cannot read /proc/stat on CPH2717"}
+- **observe**: {"relevance":"high","slug":"obs-2026-11-10-openspec-change-stats-for-nerds-created","title":"OpenSpec change stats-for-nerds created"}
+- **observe**: {"relevance":"high","slug":"obs-2026-11-10-localglasses-stats-for-nerds-design-settled","title":"LocalGlasses Stats for nerds design settled"}
 - **observe**: {"relevance":"high","slug":"obs-2026-11-10-localglasses-agent-vertical-slice-working","title":"LocalGlasses agent vertical slice working"}
 - **observe**: {"relevance":"high","slug":"obs-2026-11-10-openspec-change-created-for-localglasses-agent","title":"OpenSpec change created for LocalGlasses agent"}
 - **decision**: {"date":"2026-11-11","key_corrections":["device is MediaTek MT6897 with 7.65 GB RAM, not Snapdragon 8 GB","Android has no MCP stdio transport; LiteRT-LM @Tool + constrained decoding replaces localhost MCP","every action requires an editable plan and approval, superseding risky-only auto-run"],"pages":["syntheses/localglasses-on-device-agent-architecture","concepts/gemma-4-e2b-on-litert-lm-for-android","concepts/accessibility-driven-android-agent-safety-model"],"result":"Grill Me complete; 44 turns recorded; GRILL-ME.md saved","topic":"LocalGlasses on-device agent"}

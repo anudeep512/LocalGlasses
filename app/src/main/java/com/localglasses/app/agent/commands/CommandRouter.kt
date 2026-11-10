@@ -3,6 +3,11 @@ package com.localglasses.app.agent.commands
 import com.google.ai.edge.litertlm.tool
 import com.localglasses.app.agent.model.EngineHolder
 import com.localglasses.app.agent.safety.SafetyPolicy
+import com.localglasses.app.agent.telemetry.InferenceMetrics
+import com.localglasses.app.agent.telemetry.InferenceMetricsMapper
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Stateless command router. Each call builds a fresh conversation with the same
@@ -12,6 +17,7 @@ class CommandRouter(
     private val engineHolder: EngineHolder,
     private val safetyPolicy: SafetyPolicy,
     private val suggestions: (String) -> List<String> = ::defaultSuggestions,
+    private val inferenceDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
 
     suspend fun route(command: String): RoutingDecision {
@@ -23,29 +29,50 @@ class CommandRouter(
             return RoutingDecision.UiPlan(goal = command, app = appFrom(command))
         }
 
+        val startNanos = System.nanoTime()
         val engine = engineHolder.ensureLoaded().getOrElse { error ->
             return RoutingDecision.Failed(error.message ?: "Model unavailable")
         }
 
         val reply = try {
-            engine.conversation(
-                systemPrompt = SYSTEM_PROMPT,
-                tools = listOf(tool(RouterTools())),
-                automaticToolCalling = false,
-            ).use { conversation ->
-                conversation.send(command)
+            withContext(inferenceDispatcher) {
+                engine.conversation(
+                    systemPrompt = SYSTEM_PROMPT,
+                    tools = listOf(tool(RouterTools())),
+                    automaticToolCalling = false,
+                ).use { conversation ->
+                    conversation.send(command)
+                }
             }
         } catch (error: Exception) {
-            return RoutingDecision.Failed(error.message ?: "Model inference failed")
+            return RoutingDecision.Failed(
+                reason = error.message ?: "Model inference failed",
+                metrics = InferenceMetrics(
+                    modelId = engine.modelId,
+                    backend = engine.backendName,
+                    engineLoaded = engine.isLoaded,
+                    inferenceLatencyMs = elapsedMs(startNanos),
+                ),
+            )
         }
 
-        val decision = ToolCallParser.parse(reply.toolCalls)
+        val inference = InferenceMetricsMapper.fromBenchmark(
+            benchmark = reply.benchmarkInfo,
+            modelId = engine.modelId,
+            backend = engine.backendName,
+            engineLoaded = engine.isLoaded,
+            inferenceLatencyMs = elapsedMs(startNanos),
+        )
+        val decision = ToolCallParser.parse(reply.toolCalls).withMetrics(inference)
         return if (decision is RoutingDecision.NoMatch && decision.suggestions.isEmpty()) {
             decision.copy(suggestions = suggestions(command))
         } else {
             decision
         }
     }
+
+    private fun elapsedMs(startNanos: Long): Long =
+        ((System.nanoTime() - startNanos) / 1_000_000L).coerceAtLeast(0L)
 
     private fun asksForUi(command: String): Boolean {
         val text = command.lowercase()

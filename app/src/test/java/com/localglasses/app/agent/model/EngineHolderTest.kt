@@ -87,6 +87,8 @@ class EngineHolderTest {
         val fake = object : InferenceEngine {
             private var loaded = false
             override val isLoaded: Boolean get() = loaded
+        override val modelId: String = "test-model"
+        override val backendName: String = "CPU"
             override fun load() {
                 loadThread = Thread.currentThread().name
                 loaded = true
@@ -116,6 +118,8 @@ class EngineHolderTest {
         private var loaded = false
 
         override val isLoaded: Boolean get() = loaded
+        override val modelId: String = "test-model"
+        override val backendName: String = "CPU"
 
         override fun load() {
             loads += 1

@@ -17,6 +17,9 @@ import com.localglasses.app.agent.model.MemoryGuard
 import com.localglasses.app.agent.model.ModelRepository
 import com.localglasses.app.agent.safety.SafetyPolicy
 import com.localglasses.app.agent.automation.ForegroundApp
+import com.localglasses.app.agent.telemetry.AndroidMetricsSource
+import com.localglasses.app.agent.telemetry.MetricsCollector
+import com.localglasses.app.agent.telemetry.ModelRuntimeInfo
 import com.localglasses.app.agent.trace.ScreenshotStore
 import com.localglasses.app.agent.trace.TraceExporter
 import com.localglasses.app.agent.trace.TraceRecorder
@@ -42,8 +45,32 @@ class AgentContainer(context: Context) {
 
     val engineHolder: EngineHolder by lazy {
         EngineHolder(
-            factory = { LiteRtEngine(modelRepository.modelFile, appContext.cacheDir) },
+            factory = {
+                LiteRtEngine(
+                    modelFile = modelRepository.modelFile,
+                    cacheDir = appContext.cacheDir,
+                    modelId = modelRepository.manifest.id,
+                    backendName = "CPU",
+                )
+            },
             canLoad = { memoryGuard.canLoad() },
+        )
+    }
+
+    val metricsCollector: MetricsCollector by lazy {
+        MetricsCollector(
+            AndroidMetricsSource(
+                context = appContext,
+                modelInfo = {
+                    val ready = modelRepository.isReady()
+                    ModelRuntimeInfo(
+                        modelId = if (ready) modelRepository.manifest.id else null,
+                        modelFileBytes = if (ready) modelRepository.manifest.sizeBytes else null,
+                        backend = "CPU",
+                        engineLoaded = engineHolder.isLoaded,
+                    )
+                },
+            ),
         )
     }
 

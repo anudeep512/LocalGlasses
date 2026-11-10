@@ -26,6 +26,8 @@ class CommandRouterTest {
 
         assertTrue(decision is RoutingDecision.Action)
         assertEquals(1, engine.loads)
+        assertEquals("test-model", decision.metrics?.modelId)
+        assertTrue((decision.metrics?.inferenceLatencyMs ?: -1) >= 0)
     }
 
     @Test
@@ -60,6 +62,7 @@ class CommandRouterTest {
 
         assertTrue(decision is RoutingDecision.Blocked)
         assertEquals(0, engine.loads)
+        assertEquals(null, decision.metrics)
     }
 
     @Test
@@ -72,6 +75,18 @@ class CommandRouterTest {
 
         assertEquals(listOf("first command", "second command"), engine.sent)
         assertEquals(1, engine.systemPrompts.distinct().size)
+    }
+
+    @Test
+    fun inferenceFailureKeepsLatencyMetrics() = runTest {
+        val engine = FakeEngine(InferenceReply("", emptyList()), failSend = true)
+        val router = router(engine)
+
+        val decision = router.route("call Amma")
+
+        assertTrue(decision is RoutingDecision.Failed)
+        assertEquals("test-model", decision.metrics?.modelId)
+        assertTrue((decision.metrics?.inferenceLatencyMs ?: -1) >= 0)
     }
 
     @Test
@@ -93,13 +108,18 @@ class CommandRouterTest {
         return CommandRouter(holder, SafetyPolicy())
     }
 
-    private class FakeEngine(private val reply: InferenceReply) : InferenceEngine {
+    private class FakeEngine(
+        private val reply: InferenceReply,
+        private val failSend: Boolean = false,
+    ) : InferenceEngine {
         var loads = 0
         val sent = mutableListOf<String>()
         val systemPrompts = mutableListOf<String>()
         private var loaded = false
 
         override val isLoaded: Boolean get() = loaded
+        override val modelId: String = "test-model"
+        override val backendName: String = "CPU"
 
         override fun load() {
             loads += 1
@@ -119,6 +139,7 @@ class CommandRouterTest {
             return object : InferenceConversation {
                 override fun send(command: String): InferenceReply {
                     sent += command
+                    if (failSend) error("inference failed")
                     return reply
                 }
 

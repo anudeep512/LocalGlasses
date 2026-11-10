@@ -33,7 +33,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,13 +41,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.localglasses.app.agent.PermissionsCoordinator
 import com.localglasses.app.agent.approval.PlanApprovalSheet
 import com.localglasses.app.agent.approval.PlanState
 import com.localglasses.app.agent.commands.AgentViewModel
 import com.localglasses.app.agent.model.ModelState
+import com.localglasses.app.ui.AppTab
 import com.localglasses.app.ui.GlassesScreen
+import com.localglasses.app.ui.fallbackTab
+import com.localglasses.app.ui.stats.StatsForNerdsBlock
+import com.localglasses.app.ui.stats.StatsScreen
+import com.localglasses.app.ui.visibleTabs
 import com.meta.wearable.dat.core.Wearables
 import kotlinx.coroutines.launch
 
@@ -60,13 +67,9 @@ private val REQUIRED_BLUETOOTH_PERMISSIONS: Array<String> =
         emptyArray()
     }
 
-private const val TAB_AGENT = 0
-private const val TAB_CAMERA = 1
-private const val TAB_SETTINGS = 2
-
 class MainActivity : ComponentActivity() {
 
-    private val selectedTab = mutableIntStateOf(TAB_AGENT)
+    private val selectedTab = mutableStateOf(AppTab.AGENT)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,8 +78,8 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     AppRoot(
-                        selectedTab = selectedTab.intValue,
-                        onSelectTab = { selectedTab.intValue = it },
+                        selectedTab = selectedTab.value,
+                        onSelectTab = { selectedTab.value = it },
                         modifier = Modifier.padding(innerPadding),
                     )
                 }
@@ -84,48 +87,42 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onNewIntent(intent: Intent) {
+    public override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.action == Intent.ACTION_ASSIST) {
-            selectedTab.intValue = TAB_AGENT
+            selectedTab.value = AppTab.AGENT
         }
     }
 }
 
 @Composable
 private fun AppRoot(
-    selectedTab: Int,
-    onSelectTab: (Int) -> Unit,
+    selectedTab: AppTab,
+    onSelectTab: (AppTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val tabs = visibleTabs(BuildConfig.STATS_ENABLED)
+    val activeTab = fallbackTab(selectedTab, BuildConfig.STATS_ENABLED)
+
     Column(modifier = modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(1f)) {
-            when (selectedTab) {
-                TAB_AGENT -> AgentPlaceholder()
-                TAB_CAMERA -> CameraTab()
-                else -> SettingsPlaceholder()
+            when (activeTab) {
+                AppTab.AGENT -> AgentPlaceholder()
+                AppTab.CAMERA -> CameraTab()
+                AppTab.STATS -> StatsScreen()
+                AppTab.SETTINGS -> SettingsPlaceholder()
             }
         }
         NavigationBar {
-            NavigationBarItem(
-                selected = selectedTab == TAB_AGENT,
-                onClick = { onSelectTab(TAB_AGENT) },
-                icon = { Text("A") },
-                label = { Text("Agent") },
-            )
-            NavigationBarItem(
-                selected = selectedTab == TAB_CAMERA,
-                onClick = { onSelectTab(TAB_CAMERA) },
-                icon = { Text("C") },
-                label = { Text("Camera") },
-            )
-            NavigationBarItem(
-                selected = selectedTab == TAB_SETTINGS,
-                onClick = { onSelectTab(TAB_SETTINGS) },
-                icon = { Text("S") },
-                label = { Text("Settings") },
-            )
+            tabs.forEach { tab ->
+                NavigationBarItem(
+                    selected = activeTab == tab,
+                    onClick = { onSelectTab(tab) },
+                    icon = { Text(tab.label.take(1)) },
+                    label = { Text(tab.label) },
+                )
+            }
         }
     }
 }
@@ -135,6 +132,12 @@ private fun AgentPlaceholder(viewModel: AgentViewModel = viewModel()) {
     val state by viewModel.modelState.collectAsState()
     val ui by viewModel.uiState.collectAsState()
     val planState by viewModel.planState.collectAsState()
+    val liveMetrics by viewModel.liveMetrics.collectAsState()
+    val lastRequestMetrics by viewModel.lastRequestMetrics.collectAsState()
+
+    if (BuildConfig.STATS_ENABLED) {
+        AgentMetricsEffect(viewModel)
+    }
 
     Column(
         modifier = Modifier
@@ -213,11 +216,32 @@ private fun AgentPlaceholder(viewModel: AgentViewModel = viewModel()) {
             )
         }
 
+        if (BuildConfig.STATS_ENABLED) {
+            StatsForNerdsBlock(
+                snapshot = liveMetrics,
+                live = liveMetrics,
+                last = lastRequestMetrics,
+                isSubmitting = ui.isSubmitting,
+            )
+        }
+
         Text(
             "Camera stays available on its own tab. Settings holds the model, traces, " +
                 "and special access.",
             style = MaterialTheme.typography.bodySmall,
         )
+    }
+}
+
+@Composable
+private fun AgentMetricsEffect(viewModel: AgentViewModel) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner, viewModel) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.metricsStream().collect { snapshot ->
+                viewModel.onLiveSample(snapshot)
+            }
+        }
     }
 }
 

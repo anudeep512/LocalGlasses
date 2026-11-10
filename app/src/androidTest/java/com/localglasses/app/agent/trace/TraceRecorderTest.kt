@@ -3,7 +3,11 @@ package com.localglasses.app.agent.trace
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.localglasses.app.agent.telemetry.DeviceSnapshot
+import com.localglasses.app.agent.telemetry.InferenceMetrics
+import com.localglasses.app.agent.telemetry.RequestMetrics
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -37,6 +41,15 @@ class TraceRecorderTest {
             toolCallsJson = """{"name":"call_contact"}""",
             planJson = "Run call_contact",
             outcome = "pending_approval",
+            metrics = RequestMetrics(
+                device = DeviceSnapshot(deviceTotalBytes = 1),
+                inference = InferenceMetrics(
+                    modelId = "gemma",
+                    promptTokens = 10,
+                    completionTokens = 5,
+                    inferenceLatencyMs = 700,
+                ),
+            ),
         )
         recorder.step(id, 0, "Run call_contact", "Contacts screen", "success", 12)
         recorder.finish(id, "call Amma", "action", null, "success")
@@ -44,6 +57,28 @@ class TraceRecorderTest {
         val trace = database.traces().single()
         assertEquals("success", trace.outcome)
         assertEquals(1, database.steps(id).size)
+        assertEquals(5, database.metrics(id)!!.completionTokens)
+        assertEquals(700L, database.metrics(id)!!.inferenceLatencyMs)
+    }
+
+    @Test
+    fun recordsDeviceMetricsButNoInferenceForBlockedTrace() {
+        val id = recorder.start("install a new app")
+        recorder.finish(
+            id,
+            "install a new app",
+            "blocked",
+            null,
+            "blocked",
+            metrics = RequestMetrics(
+                device = DeviceSnapshot(deviceTotalBytes = 2, appPssBytes = 9),
+                inference = null,
+            ),
+        )
+
+        val metrics = database.metrics(id)!!
+        assertNull(metrics.promptTokens)
+        assertEquals(9L, metrics.snapshotJson.let { com.localglasses.app.agent.telemetry.MetricsJson.decode(it)?.device?.appPssBytes })
     }
 
     @Test

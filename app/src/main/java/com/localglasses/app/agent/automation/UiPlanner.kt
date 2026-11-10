@@ -7,20 +7,28 @@ import com.localglasses.app.agent.approval.Plan
 import com.localglasses.app.agent.approval.PlanStep
 import com.localglasses.app.agent.approval.PlanValidator
 import com.localglasses.app.agent.model.EngineHolder
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class UiPlanner(private val engineHolder: EngineHolder) {
+class UiPlanner(
+    private val engineHolder: EngineHolder,
+    private val inferenceDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) {
 
     suspend fun plan(command: String, goal: String, app: String?): Result<Plan> {
         val engine = engineHolder.ensureLoaded().getOrElse { return Result.failure(it) }
         val reply = try {
-            engine.conversation(
-                systemPrompt = SYSTEM_PROMPT,
-                tools = listOf(tool(SubmitPlanTool())),
-                automaticToolCalling = false,
-            ).use { conversation ->
-                conversation.send(
-                    "Command: $command\nGoal: $goal\nTarget package: ${app ?: "current app"}",
-                )
+            withContext(inferenceDispatcher) {
+                engine.conversation(
+                    systemPrompt = SYSTEM_PROMPT,
+                    tools = listOf(tool(SubmitPlanTool())),
+                    automaticToolCalling = false,
+                ).use { conversation ->
+                    conversation.send(
+                        "Command: $command\nGoal: $goal\nTarget package: ${app ?: "current app"}",
+                    )
+                }
             }
         } catch (error: Exception) {
             return Result.failure(error)

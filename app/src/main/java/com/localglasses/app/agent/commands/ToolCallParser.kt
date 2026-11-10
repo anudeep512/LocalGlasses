@@ -1,6 +1,7 @@
 package com.localglasses.app.agent.commands
 
 import com.localglasses.app.agent.model.InferenceToolCall
+import com.localglasses.app.agent.telemetry.InferenceMetrics
 
 data class RegistryActionRequest(
     val actionId: String,
@@ -8,14 +9,42 @@ data class RegistryActionRequest(
 )
 
 sealed interface RoutingDecision {
-    data class Action(val request: RegistryActionRequest) : RoutingDecision
-    data class UiPlan(val goal: String, val app: String?) : RoutingDecision
+    val metrics: InferenceMetrics?
+
+    data class Action(
+        val request: RegistryActionRequest,
+        override val metrics: InferenceMetrics? = null,
+    ) : RoutingDecision
+
+    data class UiPlan(
+        val goal: String,
+        val app: String?,
+        override val metrics: InferenceMetrics? = null,
+    ) : RoutingDecision
+
     data class NoMatch(
         val reason: String,
         val suggestions: List<String> = emptyList(),
+        override val metrics: InferenceMetrics? = null,
     ) : RoutingDecision
-    data class Blocked(val reason: String) : RoutingDecision
-    data class Failed(val reason: String) : RoutingDecision
+
+    data class Blocked(
+        val reason: String,
+        override val metrics: InferenceMetrics? = null,
+    ) : RoutingDecision
+
+    data class Failed(
+        val reason: String,
+        override val metrics: InferenceMetrics? = null,
+    ) : RoutingDecision
+}
+
+fun RoutingDecision.withMetrics(metrics: InferenceMetrics?): RoutingDecision = when (this) {
+    is RoutingDecision.Action -> copy(metrics = metrics)
+    is RoutingDecision.UiPlan -> copy(metrics = metrics)
+    is RoutingDecision.NoMatch -> copy(metrics = metrics)
+    is RoutingDecision.Blocked -> copy(metrics = metrics)
+    is RoutingDecision.Failed -> copy(metrics = metrics)
 }
 
 /**

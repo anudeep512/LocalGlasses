@@ -2,6 +2,8 @@ package com.localglasses.app.agent.trace
 
 import android.content.ContentValues
 import android.content.Context
+import com.localglasses.app.agent.telemetry.MetricsJson
+import com.localglasses.app.agent.telemetry.RequestMetrics
 import java.io.File
 import net.zetetic.database.sqlcipher.SQLiteDatabase
 
@@ -24,6 +26,26 @@ data class StepRow(
     val screenText: String?,
     val outcome: String?,
     val durationMs: Long,
+)
+
+data class TraceMetricsRow(
+    val traceId: String,
+    val capturedAt: Long,
+    val inferenceLatencyMs: Long?,
+    val ttftMs: Long?,
+    val promptTokens: Int?,
+    val completionTokens: Int?,
+    val prefillTps: Double?,
+    val decodeTps: Double?,
+    val peakAppPssBytes: Long?,
+    val peakDeviceCpuPercent: Double?,
+    val worstThermalStatus: String?,
+    val snapshotJson: String,
+)
+
+data class TraceMetricRow(
+    val trace: TraceRow,
+    val metrics: TraceMetricsRow?,
 )
 
 class TraceDatabase(
@@ -105,6 +127,24 @@ class TraceDatabase(
             )
             """.trimIndent(),
         )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS trace_metrics(
+                trace_id TEXT PRIMARY KEY,
+                captured_at INTEGER NOT NULL,
+                inference_latency_ms INTEGER,
+                ttft_ms INTEGER,
+                prompt_tokens INTEGER,
+                completion_tokens INTEGER,
+                prefill_tps REAL,
+                decode_tps REAL,
+                peak_app_pss_bytes INTEGER,
+                peak_device_cpu_percent REAL,
+                worst_thermal_status TEXT,
+                snapshot_json TEXT NOT NULL
+            )
+            """.trimIndent(),
+        )
     }
 
     fun insertTrace(
@@ -161,6 +201,125 @@ class TraceDatabase(
             put("duration_ms", durationMs)
         }
         db.insert("trace_steps", null, values)
+    }
+
+    fun upsertMetrics(traceId: String, metrics: RequestMetrics) {
+        val inference = metrics.inference
+        val values = ContentValues().apply {
+            put("trace_id", traceId)
+            put("captured_at", metrics.capturedAt)
+            put("inference_latency_ms", inference?.inferenceLatencyMs)
+            put("ttft_ms", inference?.ttftMs)
+            put("prompt_tokens", inference?.promptTokens)
+            put("completion_tokens", inference?.completionTokens)
+            put("prefill_tps", inference?.prefillTps)
+            put("decode_tps", inference?.decodeTps)
+            put("peak_app_pss_bytes", metrics.peakAppPssBytes)
+            put("peak_device_cpu_percent", metrics.peakDeviceCpuPercent)
+            put("worst_thermal_status", metrics.worstThermalStatus)
+            put("snapshot_json", MetricsJson.encode(metrics))
+        }
+        db.insertWithOnConflict("trace_metrics", null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun metrics(traceId: String): TraceMetricsRow? =
+        db.query(
+            "trace_metrics",
+            null,
+            "trace_id = ?",
+            arrayOf(traceId),
+            null,
+            null,
+            null,
+        ).use { cursor ->
+            if (cursor.moveToFirst()) cursor.toMetricsRow() else null
+        }
+
+    fun metricsSince(since: Long): List<TraceMetricRow> {
+        val sql = """
+            SELECT t.*,
+                   m.trace_id AS metric_trace_id,
+                   m.captured_at AS metric_captured_at,
+                   m.inference_latency_ms AS metric_inference_latency_ms,
+                   m.ttft_ms AS metric_ttft_ms,
+                   m.prompt_tokens AS metric_prompt_tokens,
+                   m.completion_tokens AS metric_completion_tokens,
+                   m.prefill_tps AS metric_prefill_tps,
+                   m.decode_tps AS metric_decode_tps,
+                   m.peak_app_pss_bytes AS metric_peak_app_pss_bytes,
+                   m.peak_device_cpu_percent AS metric_peak_device_cpu_percent,
+                   m.worst_thermal_status AS metric_worst_thermal_status,
+                   m.snapshot_json AS metric_snapshot_json
+            FROM traces t
+            LEFT JOIN trace_metrics m ON m.trace_id = t.id
+            WHERE t.started_at >= ?
+            ORDER BY t.started_at DESC
+        """.trimIndent()
+        return db.rawQuery(sql, arrayOf(since.toString())).use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    add(
+                        TraceMetricRow(
+                            trace = cursor.toTraceRow(),
+                            metrics = if (cursor.isNull(cursor.getColumnIndexOrThrow("metric_trace_id"))) {
+                                null
+                            } else {
+                                cursor.toMetricsRow("metric_")
+                            },
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun android.database.Cursor.toTraceRow(): TraceRow = TraceRow(
+        id = getString(getColumnIndexOrThrow("id")),
+        command = getString(getColumnIndexOrThrow("command")),
+        taskType = getString(getColumnIndexOrThrow("task_type")),
+        targetPackage = getString(getColumnIndexOrThrow("target_package")),
+        outcome = getString(getColumnIndexOrThrow("outcome")),
+        modelPrompt = getString(getColumnIndexOrThrow("model_prompt")),
+        toolCallsJson = getString(getColumnIndexOrThrow("tool_calls_json")),
+        planJson = getString(getColumnIndexOrThrow("plan_json")),
+        errorReason = getString(getColumnIndexOrThrow("error_reason")),
+        startedAt = getLong(getColumnIndexOrThrow("started_at")),
+    )
+
+    private fun android.database.Cursor.toMetricsRow(prefix: String = ""): TraceMetricsRow =
+        TraceMetricsRow(
+            traceId = getString(getColumnIndexOrThrow("${prefix}trace_id")),
+            capturedAt = getLong(getColumnIndexOrThrow("${prefix}captured_at")),
+            inferenceLatencyMs = getNullableLong("${prefix}inference_latency_ms"),
+            ttftMs = getNullableLong("${prefix}ttft_ms"),
+            promptTokens = getNullableInt("${prefix}prompt_tokens"),
+            completionTokens = getNullableInt("${prefix}completion_tokens"),
+            prefillTps = getNullableDouble("${prefix}prefill_tps"),
+            decodeTps = getNullableDouble("${prefix}decode_tps"),
+            peakAppPssBytes = getNullableLong("${prefix}peak_app_pss_bytes"),
+            peakDeviceCpuPercent = getNullableDouble("${prefix}peak_device_cpu_percent"),
+            worstThermalStatus = getStringOrNull("${prefix}worst_thermal_status"),
+            snapshotJson = getString(getColumnIndexOrThrow("${prefix}snapshot_json")),
+        )
+
+    private fun android.database.Cursor.getNullableLong(name: String): Long? {
+        val index = getColumnIndexOrThrow(name)
+        return if (isNull(index)) null else getLong(index)
+    }
+
+    private fun android.database.Cursor.getNullableInt(name: String): Int? {
+        val index = getColumnIndexOrThrow(name)
+        return if (isNull(index)) null else getInt(index)
+    }
+
+    private fun android.database.Cursor.getNullableDouble(name: String): Double? {
+        val index = getColumnIndexOrThrow(name)
+        return if (isNull(index)) null else getDouble(index)
+    }
+
+    private fun android.database.Cursor.getStringOrNull(name: String): String? {
+        val index = getColumnIndexOrThrow(name)
+        return if (isNull(index)) null else getString(index)
     }
 
     fun recordNotification(packageName: String, postedAt: Long, channel: String?, groupKey: String?) {
@@ -231,6 +390,7 @@ class TraceDatabase(
         }
 
     fun purge() {
+        db.delete("trace_metrics", null, null)
         db.delete("trace_steps", null, null)
         db.delete("traces", null, null)
         db.delete("notifications", null, null)

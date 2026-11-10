@@ -25,6 +25,9 @@ android {
         // Replace with the values from Wearables Developer Center for production.
         manifestPlaceholders["mwdat_application_id"] = "0"
         manifestPlaceholders["mwdat_client_token"] = "0"
+
+        // Compile-time switch for the phone/inference metrics surfaces.
+        buildConfigField("boolean", "STATS_ENABLED", "true")
     }
 
     buildTypes {

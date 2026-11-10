@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
+import com.localglasses.app.agent.telemetry.MetricsFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -23,6 +24,7 @@ class TraceExporter(
             val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
             val jsonl = buildString {
                 traces.forEach { trace ->
+                    val metrics = database.metrics(trace.id)
                     appendLine(
                         JSONObject()
                             .put("id", trace.id)
@@ -35,6 +37,12 @@ class TraceExporter(
                             .put("plan", trace.planJson)
                             .put("error", trace.errorReason)
                             .put("startedAt", trace.startedAt)
+                            .put(
+                                "metrics",
+                                metrics?.snapshotJson
+                                    ?.let { raw -> runCatching { JSONObject(raw) }.getOrNull() }
+                                    ?: JSONObject.NULL,
+                            )
                             .put(
                                 "steps",
                                 database.steps(trace.id).map { step ->
@@ -54,11 +62,25 @@ class TraceExporter(
                 appendLine("# LocalGlasses agent traces")
                 appendLine()
                 traces.forEach { trace ->
+                    val metrics = database.metrics(trace.id)
                     appendLine("## ${trace.command}")
                     appendLine()
                     appendLine("- id: ${trace.id}")
                     appendLine("- outcome: ${trace.outcome}")
                     appendLine("- steps: ${database.steps(trace.id).size}")
+                    if (metrics == null) {
+                        appendLine("- metrics: unavailable")
+                    } else {
+                        appendLine("- inference latency: ${MetricsFormat.millis(metrics.inferenceLatencyMs)}")
+                        appendLine("- time to first token: ${MetricsFormat.millis(metrics.ttftMs)}")
+                        appendLine("- prompt tokens: ${MetricsFormat.count(metrics.promptTokens)}")
+                        appendLine("- completion tokens: ${MetricsFormat.count(metrics.completionTokens)}")
+                        appendLine("- prefill: ${MetricsFormat.tokensPerSecond(metrics.prefillTps)}")
+                        appendLine("- decode: ${MetricsFormat.tokensPerSecond(metrics.decodeTps)}")
+                        appendLine("- peak app memory: ${MetricsFormat.bytes(metrics.peakAppPssBytes)}")
+                        appendLine("- peak device CPU: ${MetricsFormat.percent(metrics.peakDeviceCpuPercent)}")
+                        appendLine("- worst thermal: ${MetricsFormat.text(metrics.worstThermalStatus)}")
+                    }
                     appendLine()
                 }
             }
