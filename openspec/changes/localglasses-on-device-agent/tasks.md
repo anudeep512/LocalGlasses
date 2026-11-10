@@ -89,7 +89,7 @@
 - [ ] 9.5 Exercise every permission-denied path: contacts, call, SMS, accessibility, overlay, write settings, DND, notification listener, usage access, and battery exemption. Verify each reports a clear status and no partial action.
 - [ ] 9.6 Exercise the hard blocks on a real banking app, a password field, and an OTP screen. Verify none is automated and no sensitive content appears in the trace export.
 - [ ] 9.7 Run a 20-command soak with the model warm and apps switching, then check memory, thermal state, and battery with `adb shell dumpsys meminfo`, `dumpsys thermalservice`, and `dumpsys battery`. Verify unload/reload occurs without a crash and record the results.
-- [ ] 9.8 Run `./gradlew test lint assembleDebug` and `openspec validate localglasses-on-device-agent --strict`. Verify all pass and record the results in `README.md`.
+- [x] 9.8 Run `./gradlew test lint assembleDebug` and `openspec validate localglasses-on-device-agent --strict`. Verify all pass and record the results in `README.md`.
 - [ ] 9.9 Update `README.md` with the verified device results, known limitations, and the first-run setup checklist. Verify a fresh install can follow the checklist to a working command.
 
 ## Workflow follow-up

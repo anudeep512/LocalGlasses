@@ -128,6 +128,22 @@ would not have the Keystore key that decrypts it, and the 2.5 GB model should no
 Purge deletes traces and screenshots inside the app; files already exported to Downloads are
 left alone.
 
+## Verification (2026-11-11)
+
+- `./gradlew test lint assembleDebug` — pass.
+- `openspec validate localglasses-on-device-agent --strict` — pass.
+- Device: CPH2717 / Android 16, Gemma 4 E2B loaded via LiteRT-LM 0.19.1.
+- Real commands verified: `call 7396512369` (in-call UI reached), SMS to
+  `7396512369` (status confirmed), WhatsApp message to `7396512369` (message visible
+  in the chat), and `play Kanye West on YouTube` (`PlaybackState=PLAYING`).
+- Settings writes verified with instrumentation tests for timeout, brightness, volume,
+  rotation, DND, and flashlight; screen timeout also checked manually.
+- Trace export/purge verified: files land in `Download/LocalGlasses/`, purge leaves exports.
+
+Known limitations: Accessibility and overlay access are manual grants on a sideloaded
+build; real calls/messages depend on the SIM and WhatsApp availability; secure-screen
+detection is best-effort because Android does not expose `FLAG_SECURE` to accessibility.
+
 ## Enabling automation access
 
 1. **Accessibility** — Settings → Apps → LocalGlasses → **Allow restricted settings**, then
