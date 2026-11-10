@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -234,6 +237,7 @@ private fun SettingsPlaceholder() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -417,6 +421,7 @@ private fun SettingsPlaceholder() {
         val traceDatabase = app.agentContainer.traceDatabase
         val traceExporter = app.agentContainer.traceExporter
         var traceCount by remember { mutableStateOf(traceDatabase.countTraces()) }
+        var confirmPurge by remember { mutableStateOf(false) }
         val scope = rememberCoroutineScope()
         Text("Traces: $traceCount", style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -429,11 +434,33 @@ private fun SettingsPlaceholder() {
                 },
             ) { Text("Export traces") }
             OutlinedButton(
-                onClick = {
-                    traceDatabase.purge()
-                    traceCount = traceDatabase.countTraces()
-                },
+                onClick = { confirmPurge = true },
             ) { Text("Purge traces") }
+        }
+        if (confirmPurge) {
+            AlertDialog(
+                onDismissRequest = { confirmPurge = false },
+                title = { Text("Purge traces?") },
+                text = {
+                    Text(
+                        "Deletes every local trace and screenshot. Exported files in " +
+                            "Downloads are not deleted.",
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            traceDatabase.purge()
+                            app.agentContainer.screenshotStore.clear()
+                            traceCount = traceDatabase.countTraces()
+                            confirmPurge = false
+                        },
+                    ) { Text("Purge") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmPurge = false }) { Text("Cancel") }
+                },
+            )
         }
     }
 }
