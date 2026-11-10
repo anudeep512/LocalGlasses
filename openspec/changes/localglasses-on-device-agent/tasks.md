@@ -75,7 +75,7 @@
 - [x] 8.1 Implement `TraceRecorder` for trace, step, model prompt, tool-call JSON, screen text, outcome, and timing records, including block events without sensitive content. Verify an instrumentation test inspects a completed trace and a blocked trace.
 - [ ] 8.2 Implement failure-only screenshots, the 50-image cap, and exclusion of secure and hard-blocked screens. Verify an instrumentation test for the cap and a manual secure-screen failure with no image.
 - [x] 8.3 Implement `TraceExporter` (JSONL and Markdown to Downloads) and the confirmed purge action. Verify an instrumentation test reads the exported files and confirms purge deletes records but not exports.
-- [ ] 8.4 Add `AgentNotificationListener`, its manifest declaration, and metadata-only recording. Verify an instrumentation test that posts a notification with a code and asserts the code is absent from storage.
+- [x] 8.4 Add `AgentNotificationListener`, its manifest declaration, and metadata-only recording. Verify an instrumentation test that posts a notification with a code and asserts the code is absent from storage.
 - [x] 8.5 Implement the usage-access helper for the foreground package. Verify on device that the current package is reported and that denying usage access degrades without failing commands.
 - [x] 8.6 Build the trace settings screen with record count, export, and purge. Verify manual export, purge, and count refresh.
 - [x] 8.7 Document the trace schema, retention, export format, and purge behaviour in `README.md`. Verify the documented export can be opened and parsed.
