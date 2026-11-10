@@ -1,0 +1,27 @@
+{
+  "packages": [
+    "com.google.android.apps.nbu.paisa.user",
+    "com.phonepe.app",
+    "net.one97.paytm",
+    "com.dreamplug.androidapp",
+    "com.bitwarden.android",
+    "com.onepassword.android",
+    "com.lastpass.lpandroid",
+    "com.microsoft.authenticator",
+    "com.google.android.apps.authenticator2"
+  ],
+  "keywords": [
+    "bank",
+    "banking",
+    "upi",
+    "wallet",
+    "payment",
+    "credit card",
+    "debit card",
+    "cvv",
+    "passcode",
+    "password manager",
+    "one-time password",
+    "otp"
+  ]
+}

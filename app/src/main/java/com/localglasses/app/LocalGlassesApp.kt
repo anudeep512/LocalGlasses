@@ -2,8 +2,13 @@ package com.localglasses.app
 
 import android.app.Application
 import android.util.Log
+import com.localglasses.app.agent.AgentContainer
 import com.meta.wearable.dat.core.Wearables
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -16,6 +21,32 @@ import kotlinx.coroutines.flow.asStateFlow
  * then reports "No eligible device available" forever, even with the glasses connected.
  */
 class LocalGlassesApp : Application() {
+
+    lateinit var agentContainer: AgentContainer
+        private set
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    override fun onCreate() {
+        super.onCreate()
+        agentContainer = AgentContainer(this)
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (::agentContainer.isInitialized &&
+            agentContainer.memoryGuard.shouldUnloadOnTrim(level)
+        ) {
+            appScope.launch { agentContainer.engineHolder.close() }
+        }
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        if (::agentContainer.isInitialized) {
+            appScope.launch { agentContainer.engineHolder.close() }
+        }
+    }
 
     private val _datReady = MutableStateFlow(false)
     val datReady: StateFlow<Boolean> = _datReady.asStateFlow()

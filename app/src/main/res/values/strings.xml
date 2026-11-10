@@ -7,4 +7,5 @@
          meta-data stays STRING typed — an integer 0 reads as "not configured". -->
     <string name="mwdat_application_id">0</string>
     <string name="mwdat_client_token">0</string>
+    <string name="accessibility_description">LocalGlasses reads the active screen only to execute the plan you approved.</string>
 </resources>
