@@ -1,6 +1,5 @@
 package com.localglasses.app.agent.actions
 
-import com.localglasses.app.agent.trace.ContactAlias
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -14,21 +13,8 @@ class ContactsResolverTest {
     )
 
     @Test
-    fun aliasWinsOverContactSearch() {
-        val resolver = ContactsResolver(
-            aliasLookup = { if (it == "Amma") ContactAlias("Amma", "9", "Amma", "+919999999999") else null },
-            source = { contacts },
-        )
-
-        val result = resolver.resolve("Amma")
-
-        assertTrue(result is ContactResolution.Unique)
-        assertEquals("9", (result as ContactResolution.Unique).contact.id)
-    }
-
-    @Test
     fun exactNameResolvesUnique() {
-        val resolver = ContactsResolver({ null }, { query -> contacts.filter { it.name.contains(query) } })
+        val resolver = ContactsResolver({ query -> contacts.filter { it.name.contains(query) } })
 
         val result = resolver.resolve("Appa")
 
@@ -37,7 +23,7 @@ class ContactsResolverTest {
 
     @Test
     fun multipleMatchesAreReturned() {
-        val resolver = ContactsResolver({ null }, { query ->
+        val resolver = ContactsResolver({ query ->
             contacts.filter { it.name.contains(query, ignoreCase = true) }
         })
 
@@ -49,7 +35,7 @@ class ContactsResolverTest {
 
     @Test
     fun directNumberResolvesWithoutContacts() {
-        val resolver = ContactsResolver({ null }, { emptyList() })
+        val resolver = ContactsResolver({ emptyList() })
 
         val result = resolver.resolve("73965 12369")
 
@@ -59,7 +45,7 @@ class ContactsResolverTest {
 
     @Test
     fun noMatch() {
-        val resolver = ContactsResolver({ null }, { emptyList() })
+        val resolver = ContactsResolver({ emptyList() })
 
         assertEquals(ContactResolution.None, resolver.resolve("Nobody"))
     }

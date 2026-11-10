@@ -16,7 +16,6 @@ import com.localglasses.app.agent.model.MemoryGuard
 import com.localglasses.app.agent.model.ModelRepository
 import com.localglasses.app.agent.safety.SafetyPolicy
 import com.localglasses.app.agent.automation.ForegroundApp
-import com.localglasses.app.agent.trace.AliasStore
 import com.localglasses.app.agent.trace.ScreenshotStore
 import com.localglasses.app.agent.trace.TraceExporter
 import com.localglasses.app.agent.trace.TraceRecorder
@@ -59,8 +58,6 @@ class AgentContainer(context: Context) {
 
     val traceDatabase: TraceDatabase by lazy { TraceDatabase(appContext) }
 
-    val aliasStore: AliasStore by lazy { AliasStore(traceDatabase) }
-
     val traceRecorder: TraceRecorder by lazy { TraceRecorder(traceDatabase) }
 
     val traceExporter: TraceExporter by lazy { TraceExporter(appContext, traceDatabase) }
@@ -72,7 +69,7 @@ class AgentContainer(context: Context) {
     val foregroundApp: ForegroundApp by lazy { ForegroundApp(appContext) }
 
     val contactsResolver: ContactsResolver by lazy {
-        ContactsResolver(aliasStore::get, AndroidContactSource(appContext))
+        ContactsResolver(AndroidContactSource(appContext))
     }
 
     val settingsController: SettingsController by lazy { SettingsController(appContext) }

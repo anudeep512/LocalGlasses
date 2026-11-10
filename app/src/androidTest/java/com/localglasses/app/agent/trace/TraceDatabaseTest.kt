@@ -55,19 +55,6 @@ class TraceDatabaseTest {
     }
 
     @Test
-    fun aliasCrudWorks() {
-        TraceDatabase(context, key).use { db ->
-            db.upsertAlias(ContactAlias("Amma", "42", "Amma", "+919999999999"))
-            assertEquals("42", db.alias("amma")?.contactId)
-            db.upsertAlias(ContactAlias("Amma", "43", "Amma", "+918888888888"))
-            assertEquals("43", db.alias("Amma")?.contactId)
-            assertEquals(1, db.aliases().size)
-            db.deleteAlias("Amma")
-            assertEquals(null, db.alias("Amma"))
-        }
-    }
-
-    @Test
     fun purgeRemovesTraces() {
         TraceDatabase(context, key).use { db ->
             db.insertTrace("trace-1", "call Amma", "action", null, "done")

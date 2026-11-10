@@ -48,7 +48,6 @@ import com.localglasses.app.agent.approval.PlanApprovalSheet
 import com.localglasses.app.agent.approval.PlanState
 import com.localglasses.app.agent.commands.AgentViewModel
 import com.localglasses.app.agent.model.ModelState
-import com.localglasses.app.agent.trace.ContactAlias
 import com.localglasses.app.ui.GlassesScreen
 import com.meta.wearable.dat.core.Wearables
 import kotlinx.coroutines.launch
@@ -214,8 +213,8 @@ private fun AgentPlaceholder(viewModel: AgentViewModel = viewModel()) {
         }
 
         Text(
-            "Camera stays available on its own tab. Settings holds the model, aliases, " +
-                "traces, and special access.",
+            "Camera stays available on its own tab. Settings holds the model, traces, " +
+                "and special access.",
             style = MaterialTheme.typography.bodySmall,
         )
     }
@@ -243,7 +242,7 @@ private fun SettingsPlaceholder() {
     ) {
         Text("Settings", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Model state, contact aliases, trace export/purge, and special access will appear here.",
+            "Model state, trace export/purge, and special access will appear here.",
             style = MaterialTheme.typography.bodyMedium,
         )
 
@@ -360,63 +359,6 @@ private fun SettingsPlaceholder() {
         }
 
         val app = context.applicationContext as LocalGlassesApp
-        val aliasStore = app.agentContainer.aliasStore
-        var aliases by remember { mutableStateOf(aliasStore.list()) }
-        var aliasText by remember { mutableStateOf("") }
-        var nameText by remember { mutableStateOf("") }
-        var phoneText by remember { mutableStateOf("") }
-
-        Text("Contact aliases", style = MaterialTheme.typography.titleSmall)
-        OutlinedTextField(
-            value = aliasText,
-            onValueChange = { aliasText = it },
-            label = { Text("Alias (for example Amma)") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = nameText,
-            onValueChange = { nameText = it },
-            label = { Text("Contact name") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = phoneText,
-            onValueChange = { phoneText = it },
-            label = { Text("Phone number") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Button(
-            enabled = aliasText.isNotBlank() && nameText.isNotBlank() && phoneText.isNotBlank(),
-            onClick = {
-                aliasStore.put(
-                    ContactAlias(
-                        alias = aliasText.trim(),
-                        contactId = aliasText.trim(),
-                        displayName = nameText.trim(),
-                        phone = phoneText.trim(),
-                    ),
-                )
-                aliases = aliasStore.list()
-                aliasText = ""
-                nameText = ""
-                phoneText = ""
-            },
-        ) { Text("Save alias") }
-
-        aliases.forEach { alias ->
-            Row {
-                Text(
-                    "${alias.alias} → ${alias.displayName} ${alias.phone}",
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(
-                    onClick = {
-                        aliasStore.delete(alias.alias)
-                        aliases = aliasStore.list()
-                    },
-                ) { Text("Delete") }
-            }
-        }
 
         val traceDatabase = app.agentContainer.traceDatabase
         val traceExporter = app.agentContainer.traceExporter

@@ -2,7 +2,6 @@ package com.localglasses.app.agent.actions
 
 import android.content.Context
 import android.provider.ContactsContract.CommonDataKinds.Phone
-import com.localglasses.app.agent.trace.ContactAlias
 import java.text.Normalizer
 
 data class ContactCandidate(
@@ -46,10 +45,7 @@ class AndroidContactSource(private val context: Context) : ContactSource {
     }
 }
 
-class ContactsResolver(
-    private val aliasLookup: (String) -> ContactAlias?,
-    private val source: ContactSource,
-) {
+class ContactsResolver(private val source: ContactSource) {
     fun resolve(query: String): ContactResolution {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) return ContactResolution.None
@@ -60,12 +56,6 @@ class ContactsResolver(
                     name = trimmed,
                     phone = PhoneNumbers.normalize(trimmed),
                 ),
-            )
-        }
-
-        aliasLookup(trimmed)?.let {
-            return ContactResolution.Unique(
-                ContactCandidate(it.contactId, it.displayName, it.phone),
             )
         }
 

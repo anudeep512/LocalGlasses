@@ -26,13 +26,6 @@ data class StepRow(
     val durationMs: Long,
 )
 
-data class ContactAlias(
-    val alias: String,
-    val contactId: String,
-    val displayName: String,
-    val phone: String,
-)
-
 class TraceDatabase(
     context: Context,
     passphrase: ByteArray? = null,
@@ -60,6 +53,7 @@ class TraceDatabase(
 
     init {
         createSchema()
+        db.execSQL("DROP TABLE IF EXISTS aliases")
     }
 
     private fun open(key: ByteArray): SQLiteDatabase {
@@ -97,16 +91,6 @@ class TraceDatabase(
                 post_condition TEXT,
                 outcome TEXT,
                 duration_ms INTEGER
-            )
-            """.trimIndent(),
-        )
-        db.execSQL(
-            """
-            CREATE TABLE IF NOT EXISTS aliases(
-                alias TEXT PRIMARY KEY,
-                contact_id TEXT NOT NULL,
-                display_name TEXT NOT NULL,
-                phone_e164 TEXT NOT NULL
             )
             """.trimIndent(),
         )
@@ -187,55 +171,6 @@ class TraceDatabase(
             put("group_key", groupKey)
         }
         db.insert("notifications", null, values)
-    }
-
-    fun upsertAlias(alias: ContactAlias) {
-        val values = ContentValues().apply {
-            put("alias", alias.alias)
-            put("contact_id", alias.contactId)
-            put("display_name", alias.displayName)
-            put("phone_e164", alias.phone)
-        }
-        db.insertWithOnConflict("aliases", null, values, SQLiteDatabase.CONFLICT_REPLACE)
-    }
-
-    fun alias(name: String): ContactAlias? =
-        db.query(
-            "aliases",
-            null,
-            "alias = ? COLLATE NOCASE",
-            arrayOf(name),
-            null,
-            null,
-            null,
-        ).use { cursor ->
-            if (!cursor.moveToFirst()) return null
-            ContactAlias(
-                alias = cursor.getString(cursor.getColumnIndexOrThrow("alias")),
-                contactId = cursor.getString(cursor.getColumnIndexOrThrow("contact_id")),
-                displayName = cursor.getString(cursor.getColumnIndexOrThrow("display_name")),
-                phone = cursor.getString(cursor.getColumnIndexOrThrow("phone_e164")),
-            )
-        }
-
-    fun aliases(): List<ContactAlias> =
-        db.query("aliases", null, null, null, null, null, "alias COLLATE NOCASE").use { cursor ->
-            buildList {
-                while (cursor.moveToNext()) {
-                    add(
-                        ContactAlias(
-                            alias = cursor.getString(cursor.getColumnIndexOrThrow("alias")),
-                            contactId = cursor.getString(cursor.getColumnIndexOrThrow("contact_id")),
-                            displayName = cursor.getString(cursor.getColumnIndexOrThrow("display_name")),
-                            phone = cursor.getString(cursor.getColumnIndexOrThrow("phone_e164")),
-                        ),
-                    )
-                }
-            }
-        }
-
-    fun deleteAlias(name: String) {
-        db.delete("aliases", "alias = ? COLLATE NOCASE", arrayOf(name))
     }
 
     fun traces(): List<TraceRow> =
