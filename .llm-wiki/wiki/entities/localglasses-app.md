@@ -58,6 +58,25 @@ app/src/main/java/com/localglasses/app/
 - all `MediaCodec` calls share one single-permit dispatcher
 - captures are written with `IS_PENDING` then cleared, so the gallery never shows partial files
 
+## Agent direction (2026-11-11)
+
+The app is being extended from a glasses camera app into a **phone-only, fully on-device
+command agent**. Typed command -> local **Gemma 4 E2B** via LiteRT-LM -> either one
+deterministic registry action (call, SMS, WhatsApp, YouTube, curated settings) or a multi-step
+Accessibility plan -> editable plan preview -> approval -> runner -> encrypted on-device trace.
+The glasses remain camera-only in v1. The agent screen becomes home; the camera moves to a tab.
+The app becomes the default assistant via an `ASSIST` activity.
+
+Security is part of the architecture: absolute hard blocks (banking/payments, passwords, OTP,
+account security, install/uninstall, deletion), approval for every action, progress-based loop
+guards, Keystore-backed encrypted traces, redaction before write, and notification metadata only.
+
+This supersedes no existing camera behaviour; the DAT session, capture, and recording code stay.
+
+- [LocalGlasses on-device agent architecture](/syntheses/localglasses-on-device-agent-architecture.md)
+- [Gemma 4 E2B on LiteRT-LM for Android](/concepts/gemma-4-e2b-on-litert-lm-for-android.md)
+- [Accessibility-driven Android agent safety model](/concepts/accessibility-driven-android-agent-safety-model.md)
+
 ## Known open items
 
 - Video recording is wired but **not yet confirmed on real glasses** — the last recording test ran

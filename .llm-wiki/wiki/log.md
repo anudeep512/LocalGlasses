@@ -1,7 +1,20 @@
 # Wiki Update Log
 
+## 2026-11-10
+
+- **observe**: {"relevance":"high","slug":"obs-2026-11-10-localglasses-agent-vertical-slice-working","title":"LocalGlasses agent vertical slice working"}
+- **observe**: {"relevance":"high","slug":"obs-2026-11-10-openspec-change-created-for-localglasses-agent","title":"OpenSpec change created for LocalGlasses agent"}
+- **decision**: {"date":"2026-11-11","key_corrections":["device is MediaTek MT6897 with 7.65 GB RAM, not Snapdragon 8 GB","Android has no MCP stdio transport; LiteRT-LM @Tool + constrained decoding replaces localhost MCP","every action requires an editable plan and approval, superseding risky-only auto-run"],"pages":["syntheses/localglasses-on-device-agent-architecture","concepts/gemma-4-e2b-on-litert-lm-for-android","concepts/accessibility-driven-android-agent-safety-model"],"result":"Grill Me complete; 44 turns recorded; GRILL-ME.md saved","topic":"LocalGlasses on-device agent"}
+- **observe**: {"relevance":"high","slug":"obs-2026-11-10-localglasses-agent-scope-and-safety-model-decided","title":"LocalGlasses agent scope and safety model decided"}
+- **retro**: {"category":"security","slug":"accessibility-agent-hard-blocks-before-trace","title":"Hard blocks before trace capture"}
+- **retro**: {"category":"architecture","slug":"litert-lm-tool-calling-replaces-mcp-on-android","title":"LiteRT-LM tool calling replaces MCP on Android"}
+- **ensure\_page**: {"page_type":"concept","path":"concepts/accessibility-driven-android-agent-safety-model","title":"Accessibility-driven Android agent safety model"}
+- **ensure\_page**: {"page_type":"concept","path":"concepts/gemma-4-e2b-on-litert-lm-for-android","title":"Gemma 4 E2B on LiteRT-LM for Android"}
+- **ensure\_page**: {"page_type":"synthesis","path":"syntheses/localglasses-on-device-agent-architecture","title":"LocalGlasses on-device agent architecture"}
+
 ## 2026-11-07
 
+- **observe**: {"relevance":"medium","slug":"obs-2026-11-07-asd-ste100-skill-installed-to-global-pi-skills","title":"ASD-STE100 skill installed to global Pi skills"}
 - **observe**: {"relevance":"high","slug":"obs-2026-11-07-workflow-set-to-grill-me-openspec-cosmetic-extensions-remove","title":"Workflow set to Grill Me + OpenSpec; cosmetic extensions removed"}
 - **retro**: {"category":"security","slug":"key-leak-via-committed-web-captures","title":"API key leak via committed wiki web captures"}
 - **observe**: {"relevance":"high","slug":"obs-2026-11-07-localglasses-pushed-to-github-and-verified-via-clean-clone","title":"LocalGlasses pushed to GitHub and verified via clean clone"}
