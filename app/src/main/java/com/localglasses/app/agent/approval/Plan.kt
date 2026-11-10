@@ -7,6 +7,7 @@ data class NodeSelector(
     val text: String? = null,
     val textContains: String? = null,
     val contentDescription: String? = null,
+    val contentDescriptionContains: String? = null,
     val index: Int? = null,
 )
 

@@ -95,18 +95,31 @@ class AndroidAccessibilityGateway(
     private fun matches(node: AccessibilityNodeInfo, selector: NodeSelector): Boolean {
         if (selector.viewId != null && node.viewIdResourceName != selector.viewId) return false
         if (selector.contentDescription != null &&
-            node.contentDescription?.toString() != selector.contentDescription
+            !node.contentDescription?.toString()
+                ?.equals(selector.contentDescription, ignoreCase = true).orFalse()
         ) {
             return false
         }
-        if (selector.text != null && node.text?.toString() != selector.text) return false
+        if (selector.text != null &&
+            !node.text?.toString()?.equals(selector.text, ignoreCase = true).orFalse()
+        ) {
+            return false
+        }
         if (selector.textContains != null &&
-            node.text?.toString()?.contains(selector.textContains) != true
+            node.text?.toString()?.contains(selector.textContains, ignoreCase = true) != true
+        ) {
+            return false
+        }
+        if (selector.contentDescriptionContains != null &&
+            node.contentDescription?.toString()
+                ?.contains(selector.contentDescriptionContains, ignoreCase = true) != true
         ) {
             return false
         }
         return true
     }
+
+    private fun Boolean?.orFalse(): Boolean = this == true
 
     private fun findScrollable(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         if (node.isScrollable) return node

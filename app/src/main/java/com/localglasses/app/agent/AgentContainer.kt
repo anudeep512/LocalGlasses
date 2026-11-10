@@ -7,6 +7,7 @@ import com.localglasses.app.agent.actions.AndroidContactSource
 import com.localglasses.app.agent.actions.ContactsResolver
 import com.localglasses.app.agent.actions.SettingsController
 import com.localglasses.app.agent.actions.WhatsAppSender
+import com.localglasses.app.agent.actions.YouTubePlayer
 import com.localglasses.app.agent.commands.CommandRouter
 import com.localglasses.app.agent.model.AndroidMemorySource
 import com.localglasses.app.agent.model.EngineHolder
@@ -83,6 +84,8 @@ class AgentContainer(context: Context) {
     val whatsAppSender: WhatsAppSender by lazy {
         WhatsAppSender(appContext, contactsResolver)
     }
+
+    val youTubePlayer: YouTubePlayer by lazy { YouTubePlayer(appContext) }
 
     fun initialize() = Unit
 }
