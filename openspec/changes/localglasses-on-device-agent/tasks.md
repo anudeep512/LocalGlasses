@@ -18,7 +18,7 @@
 - [x] 2.5 Implement `MemoryGuard`: check `ActivityManager.MemoryInfo.availMem` before load and close the engine on `onTrimMemory(TRIM_MEMORY_RUNNING_CRITICAL)` or `onLowMemory`. Verify unit tests with a fake memory source and a device check with `adb shell am send-trim-memory com.localglasses.app RUNNING_CRITICAL` followed by reload on the next command.
 - [x] 2.6 Implement `RouterTools` and `ToolCallParser` with exactly-one-tool enforcement, argument validation, and schema rejection. Verify unit tests for zero, one, and multiple tool calls, and a manual command that selects `call_contact`.
 - [ ] 2.7 Add the battery-optimisation exemption and notification-permission request flows. Verify that denying the exemption still allows a command and that the warm service survives with the permission granted.
-- [ ] 2.8 Verify offline inference and benchmark CPU versus the GPU artefact on the CPH2717: record prefill and decode tokens/s for both, then select the default backend. Verify a command succeeds in airplane mode and record the measurements in `README.md`.
+- [x] 2.8 Verify offline inference and benchmark CPU versus the GPU artefact on the CPH2717: record prefill and decode tokens/s for both, then select the default backend. Verify a command succeeds in airplane mode and record the measurements in `README.md`.
 - [x] 2.9 Surface model states (absent, downloading, verifying, loading, ready, reloading) in the Agent UI and keep the screen interactive during load. Verify with a manual slow-load run and an instrumentation test of the state flow.
 - [x] 2.10 Document model download, verification, storage location, and the benchmark procedure in `README.md`. Verify the documented steps reproduce a verified model.
 
@@ -82,7 +82,7 @@
 
 ## 9. Integration and Device Validation
 
-- [ ] 9.1 Run the call and SMS flows end to end with a direct number and a contact-list name, including multiple-match disambiguation. Verify the call/SMS log matches the approved plan.
+- [x] 9.1 Run the call and SMS flows end to end with a direct number and a contact-list name, including multiple-match disambiguation. Verify the call/SMS log matches the approved plan.
 - [x] 9.2 Run the WhatsApp send and YouTube play flows end to end from typed command through approval. Verify the target app performs the approved action and the status matches.
 - [x] 9.3 Run all seven settings actions on the device, including a missing write-settings and DND access case. Verify each value before and after and that no partial write occurs.
 - [ ] 9.4 Verify the default-assistant entry, the camera tab, TTS output, and the overlay stop control in one session. Verify the agent opens from the assist gesture and the camera still streams.
