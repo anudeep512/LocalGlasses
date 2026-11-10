@@ -36,7 +36,7 @@
 - [x] 4.2 Implement `CommandRouter` with one-task resolution, registry-versus-plan selection, local no-match suggestions, and stateless prompt construction. Verify unit tests for a registry command, a generic command, no match, and a second command with no first-command context.
 - [x] 4.3 Implement `Plan`, `PlanStep`, validation, and `PlanCoordinator` with a single pending plan. Verify unit tests for a second command while pending and for discarding task state after completion.
 - [x] 4.4 Build `PlanApprovalSheet` with approve, edit, reorder, delete, and cancel, and invalidate approval on every edit. Verify a Compose instrumentation test for edit invalidation and a manual approval of a two-step plan.
-- [ ] 4.5 Implement natural-language correction: send the command, current plan, and correction to the planner, replace the pending plan, and require new approval. Verify a unit test with a fake planner.
+- [x] 4.5 Implement natural-language correction: send the command, current plan, and correction to the planner, replace the pending plan, and require new approval. Verify a unit test with a fake planner.
 - [ ] 4.6 Add `ExecutionOverlay` with progress text and a stop button, guarded by `Settings.canDrawOverlays`. Verify on device that the overlay appears over WhatsApp and that stop prevents the next step.
 - [ ] 4.7 Wire phone TTS for approval requests, completions, and failures, with one utterance per event. Verify manually that no token stream or duplicate status is spoken.
 - [ ] 4.8 Wire the real router to `AgentViewModel` behind a fake engine in tests, covering needs-model, needs-permission, no-match, pending, blocked, success, and failure results. Verify instrumentation tests for each state.
