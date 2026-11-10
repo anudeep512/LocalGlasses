@@ -34,6 +34,8 @@ export ANDROID_HOME=$HOME/Android/Sdk
 
 ./gradlew assembleDebug      # APK -> app/build/outputs/apk/debug/app-debug.apk
 ./gradlew installDebug       # install to connected device/emulator
+./gradlew test               # JVM unit tests
+./gradlew connectedDebugAndroidTest   # instrumentation tests on the connected phone
 ./gradlew lint
 ```
 
@@ -48,20 +50,111 @@ export ANDROID_HOME=$HOME/Android/Sdk
 
 ```
 app/src/main/java/com/localglasses/app/
-├── LocalGlassesApp.kt          Wearables.initialize(this)
-├── MainActivity.kt             Compose status screen + controls
+├── LocalGlassesApp.kt          Application, DAT init, AgentContainer
+├── MainActivity.kt             Agent / Camera / Settings tab shell
+├── ui/GlassesScreen.kt         Camera tab: DAT session, preview, capture
+├── agent/AgentContainer.kt     Manual service locator for the agent layer
 ├── session/SessionViewModel.kt DeviceSession + Camera lifecycle
 ├── capture/VideoRecorder.kt    YUV -> H.264 via MediaCodec + MediaMuxer
 ├── capture/MediaStoreSaver.kt  Saves photos/videos to the gallery
+
+app/src/test/                   JVM unit tests
+app/src/androidTest/            Instrumentation tests
 ```
 
 `SessionViewModel` follows the DAT rules: subscribe to `state` and `errors` **before** `start()`, attach the camera only on `DeviceSessionState.STARTED`, and never reuse a stopped session.
+
+## Local model
+
+The agent uses **Gemma 4 E2B** in LiteRT-LM `.litertlm` format.
+
+- File: `gemma-4-E2B-it.litertlm`, 2,588,147,712 bytes.
+- SHA-256: `181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c`.
+- Download: one time from the public Hugging Face LiteRT community repository, started from
+  the Agent tab.
+- Storage: `files/models/` inside the app sandbox, with a `.sha256` verification marker.
+- After verification, inference is fully offline; only the download uses the network.
+- The download is resumable (`Range`) and keeps a `.part` file on cancellation.
+
+Benchmark procedure: load the model, run a fixed prompt, and record prefill/decode tokens per
+second from the runtime. The CPU backend is the current default; the GPU `.litertlm` artefact is
+an optional benchmark comparison. Model-card numbers from Snapdragon devices do not transfer to
+this MediaTek phone.
+
+## Agent commands and approval
+
+1. Type a command in the Agent tab. One command resolves to one task.
+2. The local model selects a registered action, or a UI plan when no action fits.
+3. A plan sheet shows the steps. You can edit, reorder, delete, approve, or cancel.
+4. Any edit clears approval; approve the edited plan again.
+5. Approval is the only confirmation. Registry actions execute after approval; UI task
+   execution uses the accessibility executor.
+
+Commands are stateless: a new command starts with no history from the previous one.
+
+## Supported actions
+
+| Action | Required access | Notes |
+|---|---|---|
+| Call a contact | Contacts + Phone | Cellular call only |
+| Send an SMS | Contacts + SMS | Resolved name and number shown in the plan |
+| WhatsApp message | Contacts | Prefills the conversation; automatic send needs accessibility |
+| YouTube / YouTube Music | none | Opens the search; automatic play needs accessibility |
+| Curated settings | Modify system settings (and DND access) | Timeout, brightness, volume, DND, rotation, flashlight |
+| Open a Settings page | none | Display, sound, Wi-Fi, Bluetooth, battery, apps, accessibility, notifications, location |
+
+Spotify, alarms/timers, Telegram, and arbitrary app launching are not supported.
+
+## Trace data
+
+- Tables: `traces`, `trace_steps`, `aliases`, `notifications` in the encrypted database.
+- A trace records the command, resolved task, target package, plan, model/tool JSON,
+  step outcome, timing, and any screen text touched.
+- Failure screenshots are the only images; they are capped and excluded for secure and
+  hard-blocked screens.
+- Retention: kept until manual purge. Export writes JSONL and Markdown to
+  `Download/LocalGlasses/`; no cloud sync.
+- Notification rows contain package, timestamp, channel, and group key only.
+
+## Trace storage and keys
+
+Agent traces live in a SQLCipher database at `databases/agent_trace.db`. The database
+passphrase is 32 random bytes, wrapped by an Android Keystore AES/GCM key; the plaintext
+passphrase is never stored. If the Keystore key is invalidated, the database is deleted and
+recreated rather than opened unencrypted.
+
+`android:allowBackup="false"` is deliberate: an encrypted database restored to another device
+would not have the Keystore key that decrypts it, and the 2.5 GB model should not be backed up.
+Purge deletes traces and screenshots inside the app; files already exported to Downloads are
+left alone.
+
+## Agent safety limits
+
+The agent never automates these categories, even when a plan is approved:
+
+- banking, UPI, payment, and wallet apps
+- password fields and password managers
+- reading or entering OTPs
+- account password or security-setting changes
+- installing or uninstalling apps
+- deleting files, chats, or photos
+
+Checks run before planning, before approval, and before every UI step, against both the
+foreground package and the target node. Unknown packages that look like a payment or
+credential screen are denied.
+
+Android does not expose `FLAG_SECURE` through `AccessibilityWindowInfo`. Secure-screen
+handling therefore uses a package denylist plus the screenshot API's secure-window error;
+a secure screen aborts the task and stores no image.
+
+The notification listener records package, timestamp, channel, and grouping id only. It never
+stores notification title or body text, so OTP notifications cannot leak into the trace store.
 
 ## Versions
 
 - AGP 9.5.1 (built-in Kotlin — do **not** add `org.jetbrains.kotlin.android`)
 - Gradle 9.9.0
-- Kotlin 2.4.21 (Compose compiler plugin only)
+- Kotlin 2.4.21 (Compose and serialization compiler plugins)
 - compileSdk / targetSdk 37, minSdk 29 (Android 10+)
 - DAT `com.meta.wearable:*:1.0.1`
 
