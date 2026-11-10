@@ -6,6 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.localglasses.app.LocalGlassesApp
 import com.localglasses.app.agent.actions.ActionExecution
 import com.localglasses.app.agent.automation.AgentAccessibilityService
+import com.localglasses.app.agent.automation.AndroidAccessibilityGateway
+import com.localglasses.app.agent.automation.PlanExecutor
+import com.localglasses.app.agent.automation.UiPlanner
+import com.localglasses.app.agent.approval.ExecutionOverlay
 import com.localglasses.app.agent.automation.ScreenshotTaker
 import com.localglasses.app.agent.approval.Plan
 import com.localglasses.app.agent.approval.PlanFactory
@@ -13,6 +17,7 @@ import com.localglasses.app.agent.approval.PlanReplanner
 import com.localglasses.app.agent.approval.PlanState
 import com.localglasses.app.agent.approval.PlanStep
 import com.localglasses.app.agent.model.AgentWarmService
+import com.localglasses.app.agent.PermissionsCoordinator
 import com.localglasses.app.agent.model.ModelState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -93,16 +98,60 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
                 is RoutingDecision.UiPlan -> {
-                    activeTraceId?.let {
-                        container.traceRecorder.decision(
-                            it, command, "ui_plan", decision.app, null, null, null, "unsupported",
-                        )
-                        container.traceRecorder.finish(
-                            it, command, "ui_plan", decision.app, "unsupported",
-                            "UI task planning is not wired yet",
-                        )
+                    val service = AgentAccessibilityService.instance
+                    if (service == null) {
+                        setStatus("Accessibility service is not enabled", speak = true)
+                        activeTraceId?.let {
+                            container.traceRecorder.finish(
+                                it, command, "ui_plan", decision.app, "needs_permission",
+                                "accessibility",
+                            )
+                        }
+                        return@launch
                     }
-                    setStatus("UI task planning is not wired yet")
+                    if (!PermissionsCoordinator.overlayGranted(getApplication())) {
+                        setStatus("Display-over-other-apps permission is required", speak = true)
+                        activeTraceId?.let {
+                            container.traceRecorder.finish(
+                                it, command, "ui_plan", decision.app, "needs_permission",
+                                "overlay",
+                            )
+                        }
+                        return@launch
+                    }
+                    UiPlanner(container.engineHolder)
+                        .plan(command, decision.goal, decision.app)
+                        .fold(
+                            onSuccess = { plan ->
+                                container.traceRecorder.decision(
+                                    activeTraceId ?: "",
+                                    command,
+                                    "ui_plan",
+                                    decision.app,
+                                    UiPlanner.SYSTEM_PROMPT,
+                                    decision.goal,
+                                    plan.steps.toString(),
+                                    "pending_approval",
+                                )
+                                if (container.planCoordinator.offer(plan)) {
+                                    setStatus("Plan ready for review", speak = true)
+                                } else {
+                                    setStatus("A plan is already pending")
+                                }
+                            },
+                            onFailure = { error ->
+                                setStatus(
+                                    "Could not plan: ${error.message}",
+                                    speak = true,
+                                )
+                                activeTraceId?.let {
+                                    container.traceRecorder.finish(
+                                        it, command, "ui_plan", decision.app, "failed",
+                                        error.message,
+                                    )
+                                }
+                            },
+                        )
                 }
                 is RoutingDecision.NoMatch -> {
                     activeTraceId?.let {
@@ -153,8 +202,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val step = plan.steps.singleOrNull() as? PlanStep.RunAction
             if (step == null) {
-                container.planCoordinator.fail("This plan needs the UI executor")
-                setStatus("This plan needs the UI executor", speak = true)
+                executeUiPlan(plan)
                 return@launch
             }
             when (val result = container.actionRegistry.execute(step.actionId, step.arguments)) {
@@ -243,6 +291,50 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
 
     fun retryModel() {
         container.modelRepository.enqueueDownload()
+    }
+
+    private suspend fun executeUiPlan(plan: Plan) {
+        val service = AgentAccessibilityService.instance
+        if (service == null) {
+            container.planCoordinator.fail("Accessibility service is not enabled")
+            setStatus("Accessibility service is not enabled", speak = true)
+            return
+        }
+        val context = getApplication<Application>()
+        ExecutionOverlay.start(context, "Executing plan")
+        val executor = PlanExecutor(
+            gateway = AndroidAccessibilityGateway(service),
+            safety = container.safetyPolicy,
+            stopRequested = { ExecutionOverlay.stopRequested },
+        )
+        val result = executor.execute(plan) { index, step ->
+            ExecutionOverlay.update(context, "Step ${index + 1}: ${step}")
+            activeTraceId?.let {
+                container.traceRecorder.step(it, index, step.toString(), null, "running", 0)
+            }
+        }
+        ExecutionOverlay.stop(context)
+        result.fold(
+            onSuccess = {
+                container.planCoordinator.complete()
+                activeTraceId?.let {
+                    container.traceRecorder.finish(it, plan.command, "ui_plan", plan.targetPackage, "success")
+                }
+                activeTraceId = null
+                setStatus("Plan complete", speak = true)
+            },
+            onFailure = { error ->
+                container.planCoordinator.fail(error.message ?: "UI plan failed")
+                setStatus(error.message ?: "UI plan failed", speak = true)
+                activeTraceId?.let {
+                    captureFailure(it)
+                    container.traceRecorder.finish(
+                        it, plan.command, "ui_plan", plan.targetPackage, "failed", error.message,
+                    )
+                }
+                activeTraceId = null
+            },
+        )
     }
 
     private fun captureFailure(traceId: String) {
