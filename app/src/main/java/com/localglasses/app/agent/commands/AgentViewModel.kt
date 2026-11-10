@@ -377,6 +377,10 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun captureFailure(traceId: String) {
+        val foreground = container.foregroundApp.currentPackage()
+        if (foreground != null && container.safetyPolicy.checkPackage(foreground).blocked) {
+            return
+        }
         val service = AgentAccessibilityService.instance ?: return
         ScreenshotTaker(service, container.screenshotStore)
             .capture("$traceId.png")
