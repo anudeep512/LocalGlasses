@@ -84,7 +84,7 @@
 
 - [ ] 9.1 Run the call and SMS flows end to end with a direct number and a contact-list name, including multiple-match disambiguation. Verify the call/SMS log matches the approved plan.
 - [x] 9.2 Run the WhatsApp send and YouTube play flows end to end from typed command through approval. Verify the target app performs the approved action and the status matches.
-- [ ] 9.3 Run all seven settings actions on the device, including a missing write-settings and DND access case. Verify each value before and after and that no partial write occurs.
+- [x] 9.3 Run all seven settings actions on the device, including a missing write-settings and DND access case. Verify each value before and after and that no partial write occurs.
 - [ ] 9.4 Verify the default-assistant entry, the camera tab, TTS output, and the overlay stop control in one session. Verify the agent opens from the assist gesture and the camera still streams.
 - [ ] 9.5 Exercise every permission-denied path: contacts, call, SMS, accessibility, overlay, write settings, DND, notification listener, usage access, and battery exemption. Verify each reports a clear status and no partial action.
 - [ ] 9.6 Exercise the hard blocks on a real banking app, a password field, and an OTP screen. Verify none is automated and no sensitive content appears in the trace export.
