@@ -20,6 +20,9 @@ class TtsSpeaker(context: Context) : AutoCloseable {
         }
     }
 
+    val isReady: Boolean
+        get() = ready
+
     fun speak(text: String) {
         if (text.isBlank() || !ready) return
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "agent-status")
