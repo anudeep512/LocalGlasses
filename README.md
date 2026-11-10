@@ -144,6 +144,34 @@ A real uninstall/reinstall was performed with the verified model restored; the f
 screen showed **Model not downloaded**, then **Model ready** after restore, and
 `call 7396512369` produced a plan.
 
+## Test device
+
+| Item | Value |
+|---|---|
+| Device | OnePlus **CPH2717** (Nord CE5 Lite), codename `OP613BL1`, product `CPH2717IN` |
+| SoC | MediaTek **MT6897** (Dimensity 7300), 8 cores, `arm64-v8a` |
+| GPU | ARM **Mali-G615 MC6**, OpenGL ES 3.2, Mali Vulkan |
+| NPU | MediaTek; **not used** by LiteRT-LM (NPU backends are Qualcomm QNN / Google Tensor) |
+| RAM | 7,653,648 kB (~7.65 GB; 8 GB class) |
+| Storage | 102 GB `/data`, 39 GB free during testing |
+| Android | 16 (SDK 36), build `BP2A.250605.015`, incremental `V.12ce21f_12f810b_12aacdd` |
+| Security patch | 2026-09-01 |
+| Display | 1080 × 2392, density 480 (override 408) |
+| Kernel | `6.1.157-android14-11-o-g56556c5d6047` aarch64 |
+| Model | Gemma 4 E2B `.litertlm`, 2,588,147,712 bytes |
+| Runtime | LiteRT-LM 0.19.1 |
+| Battery during test | 62%, 31.3 °C; GPU benchmark reached ~88 °C SoC |
+
+### Inference backend
+
+**Production uses CPU only.** `LiteRtEngine` defaults to `Backend.CPU()` and
+`AgentContainer` constructs it without a backend override. GPU appears only in
+`ModelBenchmarkTest`, which explicitly creates `Backend.GPU()` for comparison. The app
+has no GPU switch.
+
+GPU token throughput is higher, but the GPU run had one tool-call parse failure on the
+YouTube prompt and reached ~88 °C. CPU is the deliberate default.
+
 ## Verification (2026-11-11)
 
 - `./gradlew test lint assembleDebug` — pass.
