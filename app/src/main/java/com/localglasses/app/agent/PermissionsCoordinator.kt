@@ -22,6 +22,18 @@ object PermissionsCoordinator {
 
     fun writeSettingsGranted(context: Context): Boolean = Settings.System.canWrite(context)
 
+    fun accessibilityGranted(context: Context): Boolean =
+        com.localglasses.app.agent.automation.AgentAccessibilityService.isEnabled(context)
+
+    fun requestAccessibility(context: Context) {
+        runCatching {
+            context.startActivity(
+                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }
+    }
+
     fun overlayGranted(context: Context): Boolean = Settings.canDrawOverlays(context)
 
     fun requestOverlay(context: Context) {

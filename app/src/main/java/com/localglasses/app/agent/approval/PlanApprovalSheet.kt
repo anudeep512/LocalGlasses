@@ -31,8 +31,12 @@ fun PlanApprovalSheet(
     onApprove: () -> Unit,
     onCancel: () -> Unit,
     onUpdate: ((Plan) -> Plan) -> Unit,
+    onReplan: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val correction = androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf("")
+    }
     Card(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -107,9 +111,22 @@ fun PlanApprovalSheet(
                 }
             }
 
+            OutlinedTextField(
+                value = correction.value,
+                onValueChange = { correction.value = it },
+                label = { Text("Correction (natural language)") },
+                modifier = Modifier.fillMaxWidth(),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onApprove) { Text("Approve") }
                 OutlinedButton(onClick = onCancel) { Text("Cancel") }
+                TextButton(
+                    onClick = {
+                        onReplan(correction.value)
+                        correction.value = ""
+                    },
+                    enabled = correction.value.isNotBlank(),
+                ) { Text("Re-plan") }
             }
         }
     }

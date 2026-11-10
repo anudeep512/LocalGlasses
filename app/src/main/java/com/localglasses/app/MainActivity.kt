@@ -206,6 +206,7 @@ private fun AgentPlaceholder(viewModel: AgentViewModel = viewModel()) {
                 onApprove = viewModel::approvePlan,
                 onCancel = viewModel::cancelPlan,
                 onUpdate = viewModel::updatePlan,
+                onReplan = viewModel::replan,
             )
         }
 
@@ -280,6 +281,22 @@ private fun SettingsPlaceholder() {
                     writeSettings = PermissionsCoordinator.writeSettingsGranted(context)
                 },
             ) { Text("Grant modify system settings") }
+        }
+
+        var accessibilityGranted by remember {
+            mutableStateOf(PermissionsCoordinator.accessibilityGranted(context))
+        }
+        Text(
+            "Accessibility: ${if (accessibilityGranted) "enabled" else "not enabled"}",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        if (!accessibilityGranted) {
+            OutlinedButton(
+                onClick = {
+                    PermissionsCoordinator.requestAccessibility(context)
+                    accessibilityGranted = PermissionsCoordinator.accessibilityGranted(context)
+                },
+            ) { Text("Enable accessibility (allow restricted settings first)") }
         }
 
         var overlayGranted by remember {

@@ -5,7 +5,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.localglasses.app.LocalGlassesApp
 import com.localglasses.app.agent.actions.ActionExecution
+import com.localglasses.app.agent.automation.AgentAccessibilityService
+import com.localglasses.app.agent.automation.ScreenshotTaker
 import com.localglasses.app.agent.approval.Plan
+import com.localglasses.app.agent.approval.PlanFactory
+import com.localglasses.app.agent.approval.PlanReplanner
 import com.localglasses.app.agent.approval.PlanState
 import com.localglasses.app.agent.approval.PlanStep
 import com.localglasses.app.agent.model.AgentWarmService
@@ -71,15 +75,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             when (val decision = container.commandRouter.route(command)) {
                 is RoutingDecision.Action -> {
-                    val plan = Plan(
-                        command = command,
-                        steps = listOf(
-                            PlanStep.RunAction(
-                                decision.request.actionId,
-                                decision.request.arguments,
-                            ),
-                        ),
-                    )
+                    val plan = PlanFactory.fromAction(command, decision.request)
                     container.traceRecorder.decision(
                         id = activeTraceId ?: return@launch,
                         command = command,
@@ -196,6 +192,9 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 is ActionExecution.Failed -> {
                     container.planCoordinator.fail(result.reason)
+                    activeTraceId?.let { traceId ->
+                        captureFailure(traceId)
+                    }
                     activeTraceId?.let {
                         container.traceRecorder.finish(
                             it, plan.command, "action", null, "failed", result.reason,
@@ -217,6 +216,22 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         setStatus("Plan cancelled", speak = true)
     }
 
+    fun replan(correction: String) {
+        val pending = planState.value as? PlanState.Pending ?: return
+        if (correction.isBlank()) return
+        viewModelScope.launch {
+            val replanned = PlanReplanner { prompt -> container.commandRouter.route(prompt) }
+                .replan(pending.plan, correction)
+            if (replanned == null) {
+                setStatus("Could not re-plan; approve or cancel the current plan", speak = true)
+            } else {
+                container.planCoordinator.cancel()
+                container.planCoordinator.offer(replanned)
+                setStatus("Plan updated; approve it again", speak = true)
+            }
+        }
+    }
+
     fun updatePlan(transform: (Plan) -> Plan) {
         container.planCoordinator.update(transform)
         setStatus("Plan updated; approve it again")
@@ -228,6 +243,12 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
 
     fun retryModel() {
         container.modelRepository.enqueueDownload()
+    }
+
+    private fun captureFailure(traceId: String) {
+        val service = AgentAccessibilityService.instance ?: return
+        ScreenshotTaker(service, container.screenshotStore)
+            .capture("$traceId.png")
     }
 
     private fun setStatus(message: String, speak: Boolean = false) {
