@@ -6,6 +6,7 @@ import com.localglasses.app.agent.actions.ActionRegistry
 import com.localglasses.app.agent.actions.AndroidContactSource
 import com.localglasses.app.agent.actions.ContactsResolver
 import com.localglasses.app.agent.actions.SettingsController
+import com.localglasses.app.agent.actions.WhatsAppSender
 import com.localglasses.app.agent.commands.CommandRouter
 import com.localglasses.app.agent.model.AndroidMemorySource
 import com.localglasses.app.agent.model.EngineHolder
@@ -77,6 +78,10 @@ class AgentContainer(context: Context) {
 
     val actionRegistry: ActionRegistry by lazy {
         ActionRegistry(appContext, contactsResolver, settingsController)
+    }
+
+    val whatsAppSender: WhatsAppSender by lazy {
+        WhatsAppSender(appContext, contactsResolver)
     }
 
     fun initialize() = Unit

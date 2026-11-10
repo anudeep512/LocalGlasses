@@ -205,7 +205,21 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                 executeUiPlan(plan)
                 return@launch
             }
-            when (val result = container.actionRegistry.execute(step.actionId, step.arguments)) {
+            val result = if (step.actionId == "send_whatsapp") {
+                val service = AgentAccessibilityService.instance
+                if (service == null) {
+                    ActionExecution.NeedsPermission("accessibility")
+                } else {
+                    container.whatsAppSender.send(
+                        contactQuery = step.arguments["contact"]?.toString(),
+                        message = step.arguments["message"]?.toString(),
+                        gateway = AndroidAccessibilityGateway(service),
+                    )
+                }
+            } else {
+                container.actionRegistry.execute(step.actionId, step.arguments)
+            }
+            when (result) {
                 is ActionExecution.Success -> {
                     container.planCoordinator.complete()
                     activeTraceId?.let {
