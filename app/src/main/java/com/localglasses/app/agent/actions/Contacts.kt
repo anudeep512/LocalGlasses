@@ -53,6 +53,15 @@ class ContactsResolver(
     fun resolve(query: String): ContactResolution {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) return ContactResolution.None
+        if (PhoneNumbers.isPhoneNumber(trimmed)) {
+            return ContactResolution.Unique(
+                ContactCandidate(
+                    id = trimmed,
+                    name = trimmed,
+                    phone = PhoneNumbers.normalize(trimmed),
+                ),
+            )
+        }
 
         aliasLookup(trimmed)?.let {
             return ContactResolution.Unique(

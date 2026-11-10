@@ -54,6 +54,8 @@ class CommandRouter(
             "sleep time" or "screen timeout" maps to screen_timeout_seconds.
             Examples:
             call Amma -> call_contact(contact="Amma")
+            call 7396512369 -> call_contact(contact="7396512369")
+            send an SMS to 7396512369 saying hello -> send_sms(contact="7396512369", message="hello")
             change the sleep time to 60 seconds -> set_device_setting(setting="screen_timeout_seconds", value=60)
             play any song by Kanye West -> play_media(query="Kanye West", service="youtube")
             open WhatsApp -> plan_ui_task(goal="open WhatsApp", app="com.whatsapp")

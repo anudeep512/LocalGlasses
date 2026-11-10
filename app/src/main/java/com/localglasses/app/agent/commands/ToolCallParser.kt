@@ -128,6 +128,9 @@ object ToolCallParser {
     private fun normalize(name: String): String =
         name.replace(Regex("([a-z0-9])([A-Z])"), "$1_$2").lowercase()
 
-    private fun nonBlank(value: Any?): Boolean =
-        value is String && value.isNotBlank()
+    private fun nonBlank(value: Any?): Boolean = when (value) {
+        is String -> value.isNotBlank()
+        is Number -> true
+        else -> false
+    }
 }

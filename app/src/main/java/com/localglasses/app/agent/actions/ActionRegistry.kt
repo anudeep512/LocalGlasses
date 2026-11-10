@@ -16,14 +16,14 @@ class ActionRegistry(
 
     fun execute(actionId: String, arguments: Map<String, Any?>): ActionExecution =
         when (actionId) {
-            "call_contact" -> call(arguments["contact"] as? String)
+            "call_contact" -> call(arguments["contact"]?.toString())
             "send_sms" -> sendSms(
-                arguments["contact"] as? String,
-                arguments["message"] as? String,
+                arguments["contact"]?.toString(),
+                arguments["message"]?.toString(),
             )
             "send_whatsapp" -> sendWhatsapp(
-                arguments["contact"] as? String,
-                arguments["message"] as? String,
+                arguments["contact"]?.toString(),
+                arguments["message"]?.toString(),
             )
             "play_media" -> playMedia(
                 arguments["query"] as? String,
@@ -47,12 +47,9 @@ class ActionRegistry(
         }
 
     private fun call(query: String?): ActionExecution {
-        if (query.isNullOrBlank()) return ActionExecution.Failed("Contact is required")
+        if (query.isNullOrBlank()) return ActionExecution.Failed("Contact or number is required")
         if (!granted(Manifest.permission.CALL_PHONE)) {
             return ActionExecution.NeedsPermission(Manifest.permission.CALL_PHONE)
-        }
-        if (!granted(Manifest.permission.READ_CONTACTS)) {
-            return ActionExecution.NeedsPermission(Manifest.permission.READ_CONTACTS)
         }
         return when (val resolved = contacts.resolve(query)) {
             is ContactResolution.Unique -> launch(
@@ -60,7 +57,11 @@ class ActionRegistry(
                 "Calling ${resolved.contact.name}",
             )
             is ContactResolution.Multiple -> ActionExecution.NeedsChoice(resolved.candidates)
-            ContactResolution.None -> ActionExecution.Failed("No contact matches $query")
+            ContactResolution.None -> if (!granted(Manifest.permission.READ_CONTACTS)) {
+                ActionExecution.NeedsPermission(Manifest.permission.READ_CONTACTS)
+            } else {
+                ActionExecution.Failed("No contact or number matches $query")
+            }
         }
     }
 
@@ -70,9 +71,6 @@ class ActionRegistry(
         }
         if (!granted(Manifest.permission.SEND_SMS)) {
             return ActionExecution.NeedsPermission(Manifest.permission.SEND_SMS)
-        }
-        if (!granted(Manifest.permission.READ_CONTACTS)) {
-            return ActionExecution.NeedsPermission(Manifest.permission.READ_CONTACTS)
         }
         return when (val resolved = contacts.resolve(query)) {
             is ContactResolution.Unique -> runCatching {
@@ -86,7 +84,11 @@ class ActionRegistry(
                 ActionExecution.Success("SMS sent to ${resolved.contact.name}")
             }.getOrElse { ActionExecution.Failed(it.message ?: "SMS send failed") }
             is ContactResolution.Multiple -> ActionExecution.NeedsChoice(resolved.candidates)
-            ContactResolution.None -> ActionExecution.Failed("No contact matches $query")
+            ContactResolution.None -> if (!granted(Manifest.permission.READ_CONTACTS)) {
+                ActionExecution.NeedsPermission(Manifest.permission.READ_CONTACTS)
+            } else {
+                ActionExecution.Failed("No contact or number matches $query")
+            }
         }
     }
 
@@ -94,15 +96,12 @@ class ActionRegistry(
         if (query.isNullOrBlank() || message.isNullOrBlank()) {
             return ActionExecution.Failed("Contact and message are required")
         }
-        if (!granted(Manifest.permission.READ_CONTACTS)) {
-            return ActionExecution.NeedsPermission(Manifest.permission.READ_CONTACTS)
-        }
         if (!installed("com.whatsapp")) {
             return ActionExecution.Failed("WhatsApp is not installed")
         }
         return when (val resolved = contacts.resolve(query)) {
             is ContactResolution.Unique -> {
-                val digits = resolved.contact.phone.filter { it.isDigit() }
+                val digits = waDigits(resolved.contact.phone)
                 val uri = Uri.parse(
                     "https://wa.me/$digits?text=${Uri.encode(message)}",
                 )
@@ -119,8 +118,27 @@ class ActionRegistry(
                 }
             }
             is ContactResolution.Multiple -> ActionExecution.NeedsChoice(resolved.candidates)
-            ContactResolution.None -> ActionExecution.Failed("No contact matches $query")
+            ContactResolution.None -> if (!granted(Manifest.permission.READ_CONTACTS)) {
+                ActionExecution.NeedsPermission(Manifest.permission.READ_CONTACTS)
+            } else {
+                ActionExecution.Failed("No contact or number matches $query")
+            }
         }
+    }
+
+    private fun waDigits(phone: String): String {
+        val normalized = PhoneNumbers.normalize(phone)
+        val e164 = if (normalized.startsWith("+")) {
+            normalized
+        } else {
+            val telephony = context.getSystemService(android.telephony.TelephonyManager::class.java)
+            val iso = telephony?.networkCountryIso?.takeIf { it.isNotBlank() }
+                ?: telephony?.simCountryIso?.takeIf { it.isNotBlank() }
+                ?: java.util.Locale.getDefault().country
+            android.telephony.PhoneNumberUtils.formatNumberToE164(normalized, iso)
+                ?: normalized
+        }
+        return e164.filter { it.isDigit() }
     }
 
     private fun playMedia(query: String?, service: String?): ActionExecution {
