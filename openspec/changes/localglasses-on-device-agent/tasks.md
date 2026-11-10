@@ -39,7 +39,7 @@
 - [x] 4.5 Implement natural-language correction: send the command, current plan, and correction to the planner, replace the pending plan, and require new approval. Verify a unit test with a fake planner.
 - [x] 4.6 Add `ExecutionOverlay` with progress text and a stop button, guarded by `Settings.canDrawOverlays`. Verify on device that the overlay appears over WhatsApp and that stop prevents the next step.
 - [x] 4.7 Wire phone TTS for approval requests, completions, and failures, with one utterance per event. Verify manually that no token stream or duplicate status is spoken.
-- [ ] 4.8 Wire the real router to `AgentViewModel` behind a fake engine in tests, covering needs-model, needs-permission, no-match, pending, blocked, success, and failure results. Verify instrumentation tests for each state.
+- [x] 4.8 Wire the real router to `AgentViewModel` behind a fake engine in tests, covering needs-model, needs-permission, no-match, pending, blocked, success, and failure results. Verify instrumentation tests for each state.
 - [x] 4.9 Document the command-to-approval flow and the "approval is confirmation" rule in `README.md`. Verify the described flow matches the UI.
 
 ## 5. Encrypted Store
@@ -67,7 +67,7 @@
 - [x] 7.2 Implement observation with bounded breadth-first traversal, stable node refs, password-text exclusion, text truncation, and screen signatures. Verify unit tests with a fake node tree for node cap, password exclusion, and signature stability.
 - [x] 7.3 Implement `PlanExecutor` for open-app, tap, type, scroll, and wait with node resolution, clickable-ancestor climbing, post-condition polling, and a 5 s timeout. Verify unit tests with a fake accessibility gateway for success and timeout.
 - [x] 7.4 Implement `ProgressTracker` for repeated-screen detection, three consecutive failures, hard-block stops, immediate user stop, and no step ceiling. Verify unit tests for each guard and a 60-step fake plan that keeps progressing.
-- [ ] 7.5 Implement generic plan generation through the `submit_plan` schema and connect it to approval and execution. Verify the first generic task end to end on device: approve and send a WhatsApp message with a resolved contact.
+- [x] 7.5 Implement generic plan generation through the `submit_plan` schema and connect it to approval and execution. Verify the first generic task end to end on device: approve and send a WhatsApp message with a resolved contact.
 - [x] 7.6 Document how to enable Accessibility, the restricted-settings step, and the supported step types in `README.md`. Verify the steps work from a clean install.
 
 ## 8. Trace Store
