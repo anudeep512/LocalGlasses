@@ -68,7 +68,7 @@
 - [x] 7.3 Implement `PlanExecutor` for open-app, tap, type, scroll, and wait with node resolution, clickable-ancestor climbing, post-condition polling, and a 5 s timeout. Verify unit tests with a fake accessibility gateway for success and timeout.
 - [x] 7.4 Implement `ProgressTracker` for repeated-screen detection, three consecutive failures, hard-block stops, immediate user stop, and no step ceiling. Verify unit tests for each guard and a 60-step fake plan that keeps progressing.
 - [ ] 7.5 Implement generic plan generation through the `submit_plan` schema and connect it to approval and execution. Verify the first generic task end to end on device: approve and send a WhatsApp message with a resolved contact.
-- [ ] 7.6 Document how to enable Accessibility, the restricted-settings step, and the supported step types in `README.md`. Verify the steps work from a clean install.
+- [x] 7.6 Document how to enable Accessibility, the restricted-settings step, and the supported step types in `README.md`. Verify the steps work from a clean install.
 
 ## 8. Trace Store
 

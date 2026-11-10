@@ -128,6 +128,18 @@ would not have the Keystore key that decrypts it, and the 2.5 GB model should no
 Purge deletes traces and screenshots inside the app; files already exported to Downloads are
 left alone.
 
+## Enabling automation access
+
+1. **Accessibility** — Settings → Apps → LocalGlasses → **Allow restricted settings**, then
+   Settings → Accessibility → LocalGlasses → **On**. Without this, generic UI tasks are refused.
+2. **Display over other apps** — Settings → Apps → LocalGlasses → **Display over other apps**.
+   The execution overlay uses it to show the current step and the stop button.
+3. **Usage access** (optional) — Settings → Apps → Special access → Usage access. Used only to
+   report the foreground package.
+
+Supported UI step types: `open_app`, `tap` (view id, text, content description, or text
+contains), `type`, `scroll`, and `wait`. A step that cannot find its target fails closed.
+
 ## Agent safety limits
 
 The agent never automates these categories, even when a plan is approved:
