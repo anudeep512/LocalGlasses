@@ -63,17 +63,17 @@ When a command resolves to neither an action nor a UI plan, the system SHALL sho
 
 ### Requirement: Status output
 
-Every submitted command SHALL produce a visible status, and approval requests, completions, and failures SHALL also be spoken through the device text-to-speech engine.
+Every submitted command SHALL produce a visible status on the command screen. The app SHALL NOT produce speech output.
 
 #### Scenario: Completion
 - **WHEN** a task completes
 - **THEN** the command screen shows the outcome
-- **AND** the outcome is spoken once
+- **AND** no audio is played
 
 #### Scenario: Failure
 - **WHEN** a task cannot complete
 - **THEN** the command screen shows the failing step and reason
-- **AND** the failure is spoken once
+- **AND** no audio is played
 - **AND** the model is not asked to explain the failure
 
 ### Requirement: Stateless commands

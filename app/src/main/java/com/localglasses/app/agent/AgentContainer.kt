@@ -153,8 +153,6 @@ class AgentContainer(context: Context) {
 
     val planCoordinator: PlanCoordinator by lazy { PlanCoordinator() }
 
-    val ttsSpeaker: TtsSpeaker by lazy { TtsSpeaker(appContext) }
-
     val commandRouter: CommandRouter by lazy {
         CommandRouter(engineHolder, safetyPolicy)
     }

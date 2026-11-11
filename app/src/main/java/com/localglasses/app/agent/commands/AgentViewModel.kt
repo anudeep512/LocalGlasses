@@ -152,7 +152,7 @@ class AgentViewModel @JvmOverloads constructor(
             return
         }
         if (modelState.value != ModelState.Ready) {
-            setStatus("Model is not ready", speak = true)
+            setStatus("Model is not ready")
             return
         }
 
@@ -182,7 +182,7 @@ class AgentViewModel @JvmOverloads constructor(
                         inference = decision.metrics,
                     )
                     if (coordinator.offer(plan)) {
-                        setStatus("Plan ready for review", speak = true)
+                        setStatus("Plan ready for review")
                     } else {
                         setStatus("A plan is already pending")
                     }
@@ -190,7 +190,7 @@ class AgentViewModel @JvmOverloads constructor(
                 is RoutingDecision.UiPlan -> {
                     activeInferenceMetrics = decision.metrics
                     if (!accessibilityAvailable) {
-                        setStatus("Accessibility service is not enabled", speak = true)
+                        setStatus("Accessibility service is not enabled")
                         finishActiveTrace(
                             command, "ui_plan", decision.app, "needs_permission", "accessibility",
                         )
@@ -213,13 +213,13 @@ class AgentViewModel @JvmOverloads constructor(
                                 inference = decision.metrics,
                             )
                             if (coordinator.offer(plan)) {
-                                setStatus("Plan ready for review", speak = true)
+                                setStatus("Plan ready for review")
                             } else {
                                 setStatus("A plan is already pending")
                             }
                         },
                         onFailure = { error ->
-                            setStatus("Could not plan: ${error.message}", speak = true)
+                            setStatus("Could not plan: ${error.message}")
                             finishActiveTrace(
                                 command, "ui_plan", decision.app, "failed", error.message,
                             )
@@ -245,7 +245,6 @@ class AgentViewModel @JvmOverloads constructor(
                             append("Not understood. ")
                             if (suggestions.isNotBlank()) append("Try: $suggestions")
                         },
-                        speak = true,
                     )
                     _uiState.update { it.copy(suggestions = decision.suggestions) }
                 }
@@ -262,7 +261,7 @@ class AgentViewModel @JvmOverloads constructor(
                         inference = decision.metrics,
                     )
                     finishActiveTrace(command, "blocked", null, "blocked", decision.reason)
-                    setStatus("Blocked: ${decision.reason}", speak = true)
+                    setStatus("Blocked: ${decision.reason}")
                 }
                 is RoutingDecision.Failed -> {
                     activeInferenceMetrics = decision.metrics
@@ -277,7 +276,7 @@ class AgentViewModel @JvmOverloads constructor(
                         inference = decision.metrics,
                     )
                     finishActiveTrace(command, "failed", null, "failed", decision.reason)
-                    setStatus("Failed: ${decision.reason}", speak = true)
+                    setStatus("Failed: ${decision.reason}")
                 }
             }
             _uiState.update { it.copy(isSubmitting = false) }
@@ -291,7 +290,7 @@ class AgentViewModel @JvmOverloads constructor(
                 val reason = verdict.reason ?: "Blocked by safety policy"
                 coordinator.fail(reason)
                 finishActiveTrace(plan.command, "blocked", plan.targetPackage, "blocked", reason)
-                setStatus("Blocked: $reason", speak = true)
+                setStatus("Blocked: $reason")
                 return@launch
             }
             val step = plan.steps.singleOrNull() as? PlanStep.RunAction
@@ -335,26 +334,26 @@ class AgentViewModel @JvmOverloads constructor(
                         )
                     }
                     finishActiveTrace(plan.command, "action", null, "success")
-                    setStatus(result.message, speak = true)
+                    setStatus(result.message)
                 }
                 is ActionExecution.NeedsPermission -> {
                     coordinator.fail("Missing permission: ${result.permission}")
                     finishActiveTrace(
                         plan.command, "action", null, "needs_permission", result.permission,
                     )
-                    setStatus("Missing permission: ${result.permission}", speak = true)
+                    setStatus("Missing permission: ${result.permission}")
                 }
                 is ActionExecution.NeedsChoice -> {
                     val names = result.candidates.joinToString(", ") { it.name }
                     coordinator.fail("Multiple contacts: $names")
                     finishActiveTrace(plan.command, "action", null, "needs_choice", names)
-                    setStatus("Multiple contacts: $names", speak = true)
+                    setStatus("Multiple contacts: $names")
                 }
                 is ActionExecution.Failed -> {
                     coordinator.fail(result.reason)
                     activeTraceId?.let { traceId -> captureFailure(traceId) }
                     finishActiveTrace(plan.command, "action", null, "failed", result.reason)
-                    setStatus(result.reason, speak = true)
+                    setStatus(result.reason)
                 }
             }
         }
@@ -364,7 +363,7 @@ class AgentViewModel @JvmOverloads constructor(
         val command = (planState.value as? PlanState.Pending)?.plan?.command.orEmpty()
         coordinator.cancel()
         finishActiveTrace(command, "action", null, "cancelled")
-        setStatus("Plan cancelled", speak = true)
+        setStatus("Plan cancelled")
     }
 
     fun replan(correction: String) {
@@ -374,11 +373,11 @@ class AgentViewModel @JvmOverloads constructor(
             val replanned = PlanReplanner { prompt -> router.route(prompt) }
                 .replan(pending.plan, correction)
             if (replanned == null) {
-                setStatus("Could not re-plan; approve or cancel the current plan", speak = true)
+                setStatus("Could not re-plan; approve or cancel the current plan")
             } else {
                 coordinator.cancel()
                 coordinator.offer(replanned)
-                setStatus("Plan updated; approve it again", speak = true)
+                setStatus("Plan updated; approve it again")
             }
         }
     }
@@ -403,7 +402,7 @@ class AgentViewModel @JvmOverloads constructor(
             finishActiveTrace(
                 plan.command, "ui_plan", plan.targetPackage, "needs_permission", "accessibility",
             )
-            setStatus("Accessibility service is not enabled", speak = true)
+            setStatus("Accessibility service is not enabled")
             return
         }
         val executor = PlanExecutor(
@@ -419,11 +418,11 @@ class AgentViewModel @JvmOverloads constructor(
             onSuccess = {
                 coordinator.complete()
                 finishActiveTrace(plan.command, "ui_plan", plan.targetPackage, "success")
-                setStatus("Plan complete", speak = true)
+                setStatus("Plan complete")
             },
             onFailure = { error ->
                 coordinator.fail(error.message ?: "UI plan failed")
-                setStatus(error.message ?: "UI plan failed", speak = true)
+                setStatus(error.message ?: "UI plan failed")
                 activeTraceId?.let { traceId -> captureFailure(traceId) }
                 finishActiveTrace(
                     plan.command, "ui_plan", plan.targetPackage, "failed", error.message,
@@ -506,9 +505,9 @@ class AgentViewModel @JvmOverloads constructor(
             .capture("$traceId.png")
     }
 
-    private fun setStatus(message: String, speak: Boolean = false) {
+    /** Status is text only. The app never speaks; voice output was removed. */
+    private fun setStatus(message: String) {
         _uiState.update { it.copy(status = message) }
-        if (speak) container.ttsSpeaker.speak(message)
     }
 
     companion object {
