@@ -29,3 +29,8 @@ Lesson: a state machine can satisfy every unit test and still contradict the spe
 
 ---
 *Observed: 2026-11-11T19:34:03.350Z*
+
+## Related
+
+- [localglasses dictation](/concepts/localglasses-dictation.md)
+- [localglasses app](/entities/localglasses-app.md)

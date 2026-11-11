@@ -34,3 +34,8 @@ complementing the static `AGENTS.md` guidance. The docs recommend calling
 
 Registered for this project in `.mcp.json`. Detail in
 [SRC-2026-11-07-002](/sources/SRC-2026-11-07-002.md).
+
+## Related
+
+- [meta wearables device access toolkit android sdk](/entities/meta-wearables-device-access-toolkit-android-sdk.md)
+- [localglasses app](/entities/localglasses-app.md)

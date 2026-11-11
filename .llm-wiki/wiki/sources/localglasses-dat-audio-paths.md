@@ -25,3 +25,8 @@ LocalGlasses uses the PCM path so one local Whisper serves both phone and glasse
 ## Related
 
 _Add links to related pages._
+
+## Related
+
+- [localglasses dictation](/concepts/localglasses-dictation.md)
+- [dat session lifecycle](/concepts/dat-session-lifecycle.md)

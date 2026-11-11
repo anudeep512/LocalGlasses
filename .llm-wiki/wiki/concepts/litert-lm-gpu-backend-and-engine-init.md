@@ -1,4 +1,5 @@
 ---
+domain: ai
 type: concept
 title: LiteRT-LM GPU backend and engine init
 category: performance
@@ -39,7 +40,7 @@ created. CPU memory-maps the weights and has none of that.
 
 - **`EngineConfig.cacheDir` must already exist.** LiteRT fails with `INVALID_ARGUMENT: Cache
   directory does not exist or is not writable` — see
-  [[sources/litert-gpu-silent-cpu-fallback-missing-cache-dir]]. `LiteRtEngine.load()` now
+  [litert gpu silent cpu fallback missing cache dir](/sources/litert-gpu-silent-cpu-fallback-missing-cache-dir.md). `LiteRtEngine.load()` now
   `mkdirs()`s it and fails loudly.
 - **A silent fallback hides configuration errors.** `FallbackEngine.backendName` reports what
   actually loaded; the app writes `files/engine.log` on fallback. Never trust "GPU is configured"
@@ -51,4 +52,4 @@ created. CPU memory-maps the weights and has none of that.
 - **Thermals:** an earlier benchmark hit ~88 °C and produced one tool-call parse failure, which is
   why CPU was once the deliberate default. Re-check on long sessions.
 
-Related: [[concepts/localglasses-dictation]], [[entities/localglasses-app]]
+Related: [localglasses dictation](/concepts/localglasses-dictation.md), [localglasses app](/entities/localglasses-app.md)

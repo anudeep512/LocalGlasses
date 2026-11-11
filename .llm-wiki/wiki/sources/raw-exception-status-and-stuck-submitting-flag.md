@@ -38,3 +38,8 @@ Related: [[concepts/localglasses-dictation]]
 ## Related
 
 _Add links to related pages._
+
+## Related
+
+- [localglasses app](/entities/localglasses-app.md)
+- [localglasses stats sections](/concepts/localglasses-stats-sections.md)

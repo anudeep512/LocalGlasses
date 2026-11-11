@@ -33,3 +33,8 @@ transcode, so mock video must be h.265/HEVC. Image formats: JPEG, PNG.
 `setCameraFeed(uri)` has no such requirement.
 
 See also [DAT session lifecycle](/concepts/dat-session-lifecycle.md).
+
+## Related
+
+- [meta wearables device access toolkit android sdk](/entities/meta-wearables-device-access-toolkit-android-sdk.md)
+- [localglasses app](/entities/localglasses-app.md)

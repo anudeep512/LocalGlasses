@@ -29,3 +29,8 @@ and no system Gradle**. The IDE's bundled JetBrains Runtime is the only JVM pres
 The absence of a system `gradle` also means the Gradle wrapper had to be generated once
 using a manually downloaded distribution. See
 [LocalGlasses Android setup](/syntheses/localglasses-android-setup.md).
+
+## Related
+
+- [gradle and jdk bootstrap without a system toolchain](/concepts/gradle-and-jdk-bootstrap-without-a-system-toolchain.md)
+- [localglasses app](/entities/localglasses-app.md)

@@ -1,4 +1,5 @@
 ---
+domain: engineering
 type: concept
 title: LocalGlasses stats sections
 category: architecture
@@ -49,4 +50,4 @@ JVM: `StatsAggregatorTest` (5, incl. speech aggregates), `PendingSpeechMetricsTe
 On device: `StatsSectionsTest`, `StatsBlocksTest`, `SpeechMetricsPresentationTest`,
 `LiveSpeechMetricsTest`, `SpeechMetricsDisabledTest`.
 
-Related: [[concepts/localglasses-dictation]], [[entities/localglasses-app]]
+Related: [localglasses dictation](/concepts/localglasses-dictation.md), [localglasses app](/entities/localglasses-app.md)

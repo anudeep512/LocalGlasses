@@ -45,6 +45,8 @@ Token metrics also became available after enabling `ExperimentalFlags.enableBenc
 
 ## Related
 
-- [[sources/litert-conversation-benchmarkinfo-null]]
-- [[sources/android-proc-stat-selinux-inference-metrics]]
-- [[sources/obs-2026-11-10-localglasses-stats-for-nerds-design-settled]]
+- [litert conversation benchmarkinfo null](/sources/litert-conversation-benchmarkinfo-null.md)
+- [android proc stat selinux inference metrics](/sources/android-proc-stat-selinux-inference-metrics.md)
+- [obs 2026 11 10 localglasses stats for nerds design settled](/sources/obs-2026-11-10-localglasses-stats-for-nerds-design-settled.md)
+- [litert lm gpu backend and engine init](/concepts/litert-lm-gpu-backend-and-engine-init.md)
+- [localglasses app](/entities/localglasses-app.md)

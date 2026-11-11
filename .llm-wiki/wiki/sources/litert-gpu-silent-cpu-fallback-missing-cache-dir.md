@@ -21,7 +21,7 @@ Lessons:
 4. Numbers on CPH2717 (Mali-G615): GPU ≈ 1.8 s TTFT, 4.6 s total, 10.8 tok/s after a warm cache; CPU fallback ≈ 6.7 s TTFT, 9.6 s total, 10.3 tok/s. GPU's win is prefill/TTFT, not decode.
 5. First GPU load on a device compiles OpenCL kernels: ~100 s once, then ~9 s per cold start (cache in `filesDir`, not evictable `cacheDir`). Prewarming when the Agent screen opens hides that behind typing.
 
-Related: [[sources/localglasses-stt-sherpa-onnx-whisper-small]].
+Related: [localglasses stt sherpa onnx whisper small](/sources/localglasses-stt-sherpa-onnx-whisper-small.md).
 
 *Category: bugfix*
 
@@ -31,3 +31,8 @@ Related: [[sources/localglasses-stt-sherpa-onnx-whisper-small]].
 ## Related
 
 _Add links to related pages._
+
+## Related
+
+- [litert lm gpu backend and engine init](/concepts/litert-lm-gpu-backend-and-engine-init.md)
+- [localglasses app](/entities/localglasses-app.md)

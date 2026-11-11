@@ -1,4 +1,5 @@
 ---
+domain: engineering
 type: concept
 title: LocalGlasses dictation
 category: architecture
@@ -41,7 +42,7 @@ an explicit **Run** tap.
 - sherpa-onnx **1.13.8** (JitPack, `com.github.k2-fsa.sherpa-onnx:sherpa-onnx`), `arm64-v8a` only.
 - Whisper **small.en int8** ONNX: encoder 112,442,483 B, decoder 262,223,042 B, tokens 835,554 B,
   from `huggingface.co/csukuangfj/sherpa-onnx-whisper-small.en` (see
-  [[sources/huggingface-401-means-wrong-repo-not-blocked-network]]).
+  [huggingface 401 means wrong repo not blocked network](/sources/huggingface-401-means-wrong-repo-not-blocked-network.md)).
 - Downloaded on first use, checksum-verified per file, resumable; `SpeechModelRepository` over the
   shared `VerifiedFileRepository`.
 - Silero VAD is a **bundled asset** (`assets/silero_vad.onnx`, 629 KB), so endpointing works on a
@@ -52,7 +53,7 @@ an explicit **Run** tap.
 Per dictation: model id, source, audio ms, recognition ms, real-time factor, endpoint reason,
 word count, peak app PSS. Attached to the next request only while the field still holds the
 transcript; the block is always visible in Stats — see
-[[concepts/localglasses-stats-sections]].
+[localglasses stats sections](/concepts/localglasses-stats-sections.md).
 
 ## Tests
 
@@ -64,4 +65,4 @@ On device: `DictationRecognitionTest` (real engine, bundled WAV), `DictationEndT
 (fixture → VAD → Whisper → command field), `DictationControlsTest`,
 `DictationSourceSelectorTest`.
 
-Related: [[entities/localglasses-app]], [[concepts/litert-lm-gpu-backend-and-engine-init]]
+Related: [localglasses app](/entities/localglasses-app.md), [litert lm gpu backend and engine init](/concepts/litert-lm-gpu-backend-and-engine-init.md)

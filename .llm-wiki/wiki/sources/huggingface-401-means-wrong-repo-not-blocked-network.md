@@ -19,7 +19,7 @@ Hugging Face answers **HTTP 401 `Invalid username or password`** for a repo that
 
 Cheap verification ladder: `HEAD` headers → download only the small file and hash it → download everything once on device.
 
-Related: [[sources/localglasses-stt-sherpa-onnx-whisper-small]].
+Related: [localglasses stt sherpa onnx whisper small](/sources/localglasses-stt-sherpa-onnx-whisper-small.md).
 
 *Category: debugging*
 
@@ -29,3 +29,8 @@ Related: [[sources/localglasses-stt-sherpa-onnx-whisper-small]].
 ## Related
 
 _Add links to related pages._
+
+## Related
+
+- [localglasses dictation](/concepts/localglasses-dictation.md)
+- [localglasses app](/entities/localglasses-app.md)

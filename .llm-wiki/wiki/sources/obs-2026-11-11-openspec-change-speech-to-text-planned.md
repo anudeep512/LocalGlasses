@@ -29,3 +29,8 @@ Planning only — no project code edited.
 
 ---
 *Observed: 2026-11-11T18:49:03.453Z*
+
+## Related
+
+- [localglasses dictation](/concepts/localglasses-dictation.md)
+- [localglasses app](/entities/localglasses-app.md)
