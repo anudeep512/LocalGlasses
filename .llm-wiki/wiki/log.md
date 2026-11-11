@@ -2,6 +2,7 @@
 
 ## 2026-11-11
 
+- **retro**: {"category":"bugfix","slug":"raw-exception-status-and-stuck-submitting-flag","title":"Raw exception in status; early return stuck isSubmitting"}
 - **ensure\_page**: {"page_type":"concept","path":"concepts/litert-lm-gpu-backend-and-engine-init","title":"LiteRT-LM GPU backend and engine init"}
 - **ensure\_page**: {"page_type":"concept","path":"concepts/localglasses-stats-sections","title":"LocalGlasses stats sections"}
 - **ensure\_page**: {"page_type":"concept","path":"concepts/localglasses-dictation","title":"LocalGlasses dictation"}

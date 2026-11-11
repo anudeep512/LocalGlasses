@@ -27,4 +27,5 @@
 - [Observation: Conditional silence endpoint contradicted the spec](obs-2026-11-11-conditional-silence-endpoint-contradicted-the-spec.md)
 - [Observation: OpenSpec change speech-to-text planned](obs-2026-11-11-openspec-change-speech-to-text-planned.md)
 - [Project vault with a personal pointer page](project-vault-plus-personal-pointer.md)
+- [Raw exception in status; early return stuck isSubmitting](raw-exception-status-and-stuck-submitting-flag.md)
 - [YUV to H.264 on MediaTek: black frames, JNI segfault, thread safety](yuv-h264-mediacodec-mediatek-traps.md)
