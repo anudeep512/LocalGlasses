@@ -14,14 +14,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
- * Owns the model file, its verification marker, and the observable download state.
+ * Owns the agent model file and the observable download state.
  *
- * A `.sha256` marker records the verified artefact, so a normal app start does not
- * re-hash 2.5 GB. If the marker is missing, the file is verified once before use.
+ * Download, checksum, and verified-marker handling live in [VerifiedFileRepository] so the
+ * speech model can reuse them. This class keeps the app-specific parts: the pinned manifest,
+ * the on-disk location, the state flow the UI observes, and the WorkManager request.
  */
 class ModelRepository(
     context: Context,
@@ -32,8 +31,7 @@ class ModelRepository(
     private val appContext = context.applicationContext
     val manifest: ModelManifest = loadManifest(appContext)
     val modelFile: File = File(appContext.filesDir, "models/${manifest.fileName}")
-    private val markerFile = File(modelFile.path + ".sha256")
-    private val downloadMutex = Mutex()
+    private val verified = VerifiedFileRepository(modelFile, manifest, downloader)
 
     private val _state = MutableStateFlow<ModelState>(ModelState.Absent)
     val state: StateFlow<ModelState> = _state.asStateFlow()
@@ -43,52 +41,35 @@ class ModelRepository(
     }
 
     suspend fun refresh() {
-        if (!modelFile.isFile) {
+        if (!verified.hasFile()) {
             _state.value = ModelState.Absent
             return
         }
-
-        val markerMatches = markerFile.isFile &&
-            markerFile.readText().trim().equals(manifest.sha256, ignoreCase = true)
-        if (markerMatches) {
-            File(modelFile.path + ModelDownloader.PART_SUFFIX).delete()
+        if (verified.markerMatches()) {
+            verified.discardPartial()
             _state.value = ModelState.Ready
             return
         }
-
         _state.value = ModelState.Verifying
-        val verified = ModelDownloader.verify(modelFile, manifest.sha256)
-        if (verified) {
-            markerFile.writeText(manifest.sha256)
-            _state.value = ModelState.Ready
-        } else {
-            modelFile.delete()
-            markerFile.delete()
-            _state.value = ModelState.Absent
-        }
+        _state.value = if (verified.verifyExisting()) ModelState.Ready else ModelState.Absent
     }
 
     suspend fun download(
         onProgress: (written: Long, total: Long) -> Unit = { _, _ -> },
-    ): Result<File> = downloadMutex.withLock {
-        if (isReady()) {
-            return@withLock Result.success(modelFile)
-        }
+    ): Result<File> {
+        if (isReady()) return Result.success(modelFile)
         _state.value = ModelState.Downloading(0, manifest.sizeBytes)
-        val result = downloader.download(manifest, modelFile) { written, total ->
+        val result = verified.download { written, total ->
             _state.value = ModelState.Downloading(written, total)
             onProgress(written, total)
         }
         result.fold(
-            onSuccess = {
-                markerFile.writeText(manifest.sha256)
-                _state.value = ModelState.Ready
-            },
+            onSuccess = { _state.value = ModelState.Ready },
             onFailure = { error ->
                 _state.value = ModelState.Failed(error.message ?: "Model download failed")
             },
         )
-        result
+        return result
     }
 
     fun enqueueDownload() {

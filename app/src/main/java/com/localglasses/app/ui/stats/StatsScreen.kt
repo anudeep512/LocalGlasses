@@ -185,6 +185,21 @@ private fun SummaryCards(summary: StatsSummary) {
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SummaryCard(
+                    "Dictations",
+                    summary.dictations.toString(),
+                    Modifier.weight(1f),
+                )
+                SummaryCard(
+                    "Avg recognition",
+                    MetricsFormat.millis(summary.averageRecognitionMs),
+                    Modifier.weight(1f),
+                )
+                SummaryCard(
+                    "Avg RTF",
+                    MetricsFormat.factor(summary.averageRealTimeFactor),
+                    Modifier.weight(1f),
+                )
                 SummaryCard("Peak memory", MetricsFormat.bytes(summary.peakAppPssBytes), Modifier.weight(1f))
                 SummaryCard(
                     "Avg CPU",
@@ -275,6 +290,9 @@ private fun TraceHistoryRow(row: TraceMetricRow) {
                     MetricLine("Device model", MetricsFormat.text(snapshot?.device?.deviceModel))
                     MetricLine("Memory used", MetricsFormat.bytes(snapshot?.device?.deviceUsedBytes))
                     MetricLine("App PSS", MetricsFormat.bytes(snapshot?.device?.appPssBytes))
+                    snapshot?.speech?.let { speech ->
+                        SpeechMetricsContent(speech = speech, modifier = Modifier.padding(top = 8.dp))
+                    }
                     if (metrics == null) {
                         Text(
                             "No metrics were recorded for this trace.",

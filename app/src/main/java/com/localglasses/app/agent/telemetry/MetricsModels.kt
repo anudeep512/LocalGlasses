@@ -53,11 +53,30 @@ data class InferenceMetrics(
     val inferenceLatencyMs: Long? = null,
 )
 
+/**
+ * What the speech recogniser measured for the dictation that produced a command.
+ *
+ * The transcript itself is deliberately absent: it already lives on the trace, and metrics
+ * should not widen the retention surface for spoken content.
+ */
+@Serializable
+data class SpeechMetrics(
+    val modelId: String? = null,
+    val source: String? = null,
+    val audioDurationMs: Long? = null,
+    val recognitionLatencyMs: Long? = null,
+    val realTimeFactor: Double? = null,
+    val endpointReason: String? = null,
+    val peakAppPssBytes: Long? = null,
+    val wordCount: Int? = null,
+)
+
 @Serializable
 data class RequestMetrics(
     val capturedAt: Long = System.currentTimeMillis(),
     val device: DeviceSnapshot = DeviceSnapshot(),
     val inference: InferenceMetrics? = null,
+    val speech: SpeechMetrics? = null,
     val peakAppPssBytes: Long? = null,
     val peakDeviceCpuPercent: Double? = null,
     val peakAppCpuPercent: Double? = null,
@@ -112,6 +131,10 @@ object MetricsFormat {
 
     fun tokensPerSecond(value: Double?): String =
         if (value == null) UNAVAILABLE else String.format(Locale.US, "%.1f tok/s", value)
+
+    /** Real-time factor: decode seconds per audio second. */
+    fun factor(value: Double?): String =
+        if (value == null || value.isNaN()) UNAVAILABLE else String.format(Locale.US, "%.2f×", value)
 
     fun count(value: Int?): String =
         if (value == null) UNAVAILABLE else value.toString()

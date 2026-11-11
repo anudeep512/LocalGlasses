@@ -49,8 +49,16 @@ import com.localglasses.app.agent.PermissionsCoordinator
 import com.localglasses.app.agent.approval.PlanApprovalSheet
 import com.localglasses.app.agent.approval.PlanState
 import com.localglasses.app.agent.commands.AgentViewModel
+import com.localglasses.app.agent.dictation.DictationOutcome
+import com.localglasses.app.agent.dictation.DictationState
+import com.localglasses.app.agent.dictation.AudioSourceKind
+import com.localglasses.app.agent.dictation.DictationSourcePreference
+import com.localglasses.app.agent.dictation.DictationViewModel
 import com.localglasses.app.agent.model.ModelState
+import com.localglasses.app.agent.telemetry.MetricsFormat
 import com.localglasses.app.ui.AppTab
+import com.localglasses.app.ui.DictationControls
+import com.localglasses.app.ui.DictationSourceSelector
 import com.localglasses.app.ui.GlassesScreen
 import com.localglasses.app.ui.fallbackTab
 import com.localglasses.app.ui.stats.StatsForNerdsBlock
@@ -128,12 +136,40 @@ private fun AppRoot(
 }
 
 @Composable
-private fun AgentPlaceholder(viewModel: AgentViewModel = viewModel()) {
+private fun AgentPlaceholder(
+    viewModel: AgentViewModel = viewModel(),
+    dictationViewModel: DictationViewModel = viewModel(
+        factory = DictationViewModel.factory(LocalContext.current),
+    ),
+) {
     val state by viewModel.modelState.collectAsState()
     val ui by viewModel.uiState.collectAsState()
     val planState by viewModel.planState.collectAsState()
     val liveMetrics by viewModel.liveMetrics.collectAsState()
     val lastRequestMetrics by viewModel.lastRequestMetrics.collectAsState()
+    val dictationState by dictationViewModel.state.collectAsState()
+    val dictationLevel by dictationViewModel.level.collectAsState()
+    val dictationMessage by dictationViewModel.message.collectAsState()
+    val needsSpeechModel by dictationViewModel.needsModel.collectAsState()
+    val lastDictation by viewModel.lastDictationMetrics.collectAsState()
+    val dictationContext = LocalContext.current
+
+    // The microphone permission is requested on the first dictation tap, not at launch.
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) dictationViewModel.onMicTap()
+    }
+    val speechDownload by dictationViewModel.downloadProgress.collectAsState()
+
+    // Only a finished transcript may touch the command field; every other outcome leaves it as is.
+    LaunchedEffect(dictationViewModel) {
+        dictationViewModel.outcomes.collect { outcome ->
+            if (outcome is DictationOutcome.Transcript) {
+                viewModel.onDictationFinished(outcome.text, outcome.metrics)
+            }
+        }
+    }
 
     if (BuildConfig.STATS_ENABLED) {
         AgentMetricsEffect(viewModel)
@@ -195,6 +231,28 @@ private fun AgentPlaceholder(viewModel: AgentViewModel = viewModel()) {
             ) { Text("Run") }
         }
 
+        DictationControls(
+            state = dictationState,
+            level = dictationLevel,
+            enabled = !ui.isSubmitting && (planState as? PlanState.Pending) == null,
+            onMicTap = {
+                val granted = ContextCompat.checkSelfPermission(
+                    dictationContext,
+                    Manifest.permission.RECORD_AUDIO,
+                ) == PackageManager.PERMISSION_GRANTED
+                if (granted) {
+                    dictationViewModel.onMicTap()
+                } else {
+                    micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            },
+        )
+
+        dictationMessage?.let { message ->
+            Text(message, style = MaterialTheme.typography.bodySmall)
+            TextButton(onClick = dictationViewModel::clearMessage) { Text("Dismiss") }
+        }
+
         if (ui.status.isNotBlank()) {
             Text(ui.status, style = MaterialTheme.typography.bodyMedium)
         }
@@ -216,12 +274,41 @@ private fun AgentPlaceholder(viewModel: AgentViewModel = viewModel()) {
             )
         }
 
+        needsSpeechModel?.let { sizeBytes ->
+            AlertDialog(
+                onDismissRequest = dictationViewModel::dismissModelPrompt,
+                title = { Text("Speech model needed") },
+                text = {
+                    Text(
+                        "Dictation needs the on-device speech model " +
+                            "(${MetricsFormat.bytes(sizeBytes)}). It downloads once.",
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = dictationViewModel::downloadSpeechModel) {
+                        Text(if (speechDownload == null) "Download" else "Downloading…")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = dictationViewModel::dismissModelPrompt) { Text("Cancel") }
+                },
+            )
+        }
+
+        if (speechDownload != null) {
+            val progress = speechDownload!!.let { (written, total) ->
+                if (total > 0) written.toFloat() / total else 0f
+            }
+            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+        }
+
         if (BuildConfig.STATS_ENABLED) {
             StatsForNerdsBlock(
                 snapshot = liveMetrics,
                 live = liveMetrics,
                 last = lastRequestMetrics,
                 isSubmitting = ui.isSubmitting,
+                speech = if (ui.isSubmitting) lastDictation else lastRequestMetrics?.speech ?: lastDictation,
             )
         }
 
@@ -269,6 +356,26 @@ private fun SettingsPlaceholder() {
         Text(
             "Model state, trace export/purge, and special access will appear here.",
             style = MaterialTheme.typography.bodyMedium,
+        )
+
+        Text("Dictation", style = MaterialTheme.typography.titleSmall)
+        val sourcePreference = remember { DictationSourcePreference(context) }
+        var dictationSource by remember { mutableStateOf(sourcePreference.source) }
+        DictationSourceSelector(
+            selected = dictationSource,
+            glassesAvailable = true,
+            onSelect = { kind ->
+                dictationSource = kind
+                sourcePreference.source = kind
+            },
+        )
+        Text(
+            if (dictationSource == AudioSourceKind.GLASSES) {
+                "Dictation uses the glasses microphone. Glasses audio is a beta DAT feature."
+            } else {
+                "Dictation uses the phone microphone."
+            },
+            style = MaterialTheme.typography.bodySmall,
         )
 
         Text("Access", style = MaterialTheme.typography.titleSmall)

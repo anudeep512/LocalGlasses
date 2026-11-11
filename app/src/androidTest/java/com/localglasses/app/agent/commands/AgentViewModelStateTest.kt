@@ -210,4 +210,26 @@ class AgentViewModelStateTest {
             override fun close() = Unit
         }
     }
+
+    @Test
+    fun dictatedTextReplacesTheFieldWithoutSubmitting() = runTest {
+        val viewModel = viewModel(reply = null, modelState = ModelState.Ready)
+        viewModel.onCommandChange("old command")
+
+        viewModel.onDictationFinished("call Amma", null)
+
+        assertEquals("call Amma", viewModel.uiState.value.command)
+        assertEquals(false, viewModel.uiState.value.isSubmitting)
+        assertTrue(viewModel.uiState.value.status.isBlank())
+    }
+
+    @Test
+    fun aCancelledDictationLeavesTheTypedCommandAlone() = runTest {
+        val viewModel = viewModel(reply = null, modelState = ModelState.Ready)
+        viewModel.onCommandChange("call Amma")
+
+        // A cancelled or failed dictation never calls onDictationFinished.
+        assertEquals("call Amma", viewModel.uiState.value.command)
+        assertEquals(false, viewModel.uiState.value.isSubmitting)
+    }
 }

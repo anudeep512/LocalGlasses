@@ -28,6 +28,12 @@ android {
 
         // Compile-time switch for the phone/inference metrics surfaces.
         buildConfigField("boolean", "STATS_ENABLED", "true")
+
+        // The sherpa-onnx AAR ships arm64-v8a, armeabi-v7a, x86 and x86_64 (~50 MB).
+        // The target device is arm64 only, so the other ABIs are dead weight.
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     buildTypes {
@@ -85,6 +91,9 @@ dependencies {
     // Meta Wearables Device Access Toolkit
     implementation(libs.mwdat.core)
     implementation(libs.mwdat.camera)
+
+    // On-device speech recognition
+    implementation(libs.sherpa.onnx)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

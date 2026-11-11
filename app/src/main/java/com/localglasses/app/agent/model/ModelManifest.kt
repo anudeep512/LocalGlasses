@@ -14,10 +14,10 @@ import kotlinx.serialization.json.Json
 data class ModelManifest(
     val id: String,
     val fileName: String,
-    val url: String,
-    val sizeBytes: Long,
-    val sha256: String,
-) {
+    override val url: String,
+    override val sizeBytes: Long,
+    override val sha256: String,
+) : DownloadSpec {
     val sha256Bytes: ByteArray
         get() = sha256.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 }

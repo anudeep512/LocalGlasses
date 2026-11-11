@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Dictation: on-device speech recognition from the phone microphone -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!-- Agent: device actions -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
@@ -27,6 +30,9 @@
         android:required="false" />
     <uses-feature
         android:name="android.hardware.telephony"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.microphone"
         android:required="false" />
 
     <queries>

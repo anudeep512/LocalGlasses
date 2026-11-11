@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.localglasses.app.agent.telemetry.DeviceSnapshot
 import com.localglasses.app.agent.telemetry.MetricsFormat
 import com.localglasses.app.agent.telemetry.RequestMetrics
+import com.localglasses.app.agent.telemetry.SpeechMetrics
 
 @Composable
 fun StatsForNerdsBlock(
@@ -29,6 +30,8 @@ fun StatsForNerdsBlock(
     last: RequestMetrics?,
     isSubmitting: Boolean,
     modifier: Modifier = Modifier,
+    /** Latest dictation metrics, shown before the command is submitted. */
+    speech: SpeechMetrics? = last?.speech,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(isSubmitting) {
@@ -59,9 +62,10 @@ fun StatsForNerdsBlock(
                         live = live,
                         last = last,
                         isSubmitting = isSubmitting,
+                        speech = speech,
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    Text("Device and model", style = MaterialTheme.typography.titleSmall)
+                    Text("Device and Model", style = MaterialTheme.typography.titleSmall)
                     MetricLine("Device model", MetricsFormat.text(snapshot?.deviceModel))
                     MetricLine("System on chip", MetricsFormat.text(snapshot?.soc))
                     MetricLine("ABIs", MetricsFormat.text(snapshot?.abis))

@@ -46,3 +46,6 @@ gradle/gradle-daemon-jvm.properties
 
 # Local interview state (personal, not project config)
 .pi/grill-me/
+
+# Personal dictation recordings for the local WER harness (never commit voice data)
+.dictation-corpus/

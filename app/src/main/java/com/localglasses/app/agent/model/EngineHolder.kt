@@ -27,6 +27,14 @@ class EngineHolder(
     val isLoaded: Boolean
         get() = engine?.isLoaded == true
 
+    /**
+     * Backend of the engine that is actually loaded, or null when none is.
+     *
+     * Never guesses: a GPU preference that silently fell back to CPU must not be reported as
+     * GPU in telemetry.
+     */
+    fun backendNameOrNull(): String? = engine?.backendName
+
     suspend fun ensureLoaded(): Result<InferenceEngine> = mutex.withLock {
         engine?.takeIf { it.isLoaded }?.let { return@withLock Result.success(it) }
         if (!canLoad()) {

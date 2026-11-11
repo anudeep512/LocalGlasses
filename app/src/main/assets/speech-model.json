@@ -1,0 +1,24 @@
+{
+  "id": "whisper-small.en-int8",
+  "language": "en",
+  "files": {
+    "encoder": {
+      "fileName": "small.en-encoder.int8.onnx",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small.en/resolve/main/small.en-encoder.int8.onnx",
+      "sizeBytes": 112442483,
+      "sha256": "8bdac288f369aa94ee2194059238c465ed82ea9d47ee8fa4a8c0a891873e462f"
+    },
+    "decoder": {
+      "fileName": "small.en-decoder.int8.onnx",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small.en/resolve/main/small.en-decoder.int8.onnx",
+      "sizeBytes": 262223042,
+      "sha256": "710ccf890e10f3faa15f51ec346081a2723c9f3adb6e4da81c6573a5a6f877fb"
+    },
+    "tokens": {
+      "fileName": "small.en-tokens.txt",
+      "url": "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small.en/resolve/main/small.en-tokens.txt",
+      "sizeBytes": 835554,
+      "sha256": "306cd27f03c1a714eca7108e03d66b7dc042abe8c258b44c199a7ed9838dd930"
+    }
+  }
+}

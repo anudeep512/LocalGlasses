@@ -28,6 +28,11 @@ class LiteRtEngine(
         check(engine == null) { "engine is already loaded" }
         // BenchmarkInfo is only populated when the native benchmark collector is enabled.
         ExperimentalFlags.enableBenchmark = true
+        // LiteRT-LM rejects a cache directory that does not exist yet; the GPU weight cache
+        // (~780 MB) is written there, so it must be created before the engine starts.
+        if (!cacheDir.exists() && !cacheDir.mkdirs()) {
+            error("cannot create cache directory ${cacheDir.absolutePath}")
+        }
         val config = EngineConfig(
             modelPath = modelFile.absolutePath,
             backend = backend,

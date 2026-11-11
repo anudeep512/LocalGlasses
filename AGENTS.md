@@ -129,6 +129,25 @@ Use MockDeviceKit to drive registration, device availability, streaming media, a
 - Do not ignore `DatResult` failures from `createSession`, `start`, `addCamera`, `addDisplay`, or `capturePhoto`
 - Do not reuse terminally stopped sessions, cameras, or streams
 
+## Data retention
+
+- Do not purge or clear previous traces when a new version is built or installed. The trace
+  database and exported traces are the record of what earlier builds did; a fresh install or an
+  upgrade must leave existing rows, screenshots, and exports untouched.
+- Trace deletion is only ever an explicit user action ("Purge traces" in Settings), never a
+  side effect of building, installing, migrating, or starting the app.
+- Do not add a database version bump, `fallbackToDestructiveMigration`, or a startup cleanup that
+  drops rows. New columns and new metric fields must be additive and tolerantly decoded so old
+  rows keep loading.
+- `./gradlew connectedDebugAndroidTest` uninstalls the app when it finishes, which deletes the
+  encrypted trace database, the downloaded models (2.6 GB + 358 MB), and the GPU caches. Never
+  run it casually on a device holding real data.
+- To run instrumented tests without losing anything, install both APKs and drive the runner
+  directly instead of through Gradle:
+  `adb install -r app/build/outputs/apk/debug/app-debug.apk`,
+  `adb install -r app/build/outputs/apk/debug/app-debug-androidTest.apk`, then
+  `adb shell am instrument -w -e class <fully.qualified.Test> com.localglasses.app.test/androidx.test.runner.AndroidJUnitRunner`.
+
 ## Links
 
 - [Android API reference](https://wearables.developer.meta.com/docs/reference/android/dat/latest)

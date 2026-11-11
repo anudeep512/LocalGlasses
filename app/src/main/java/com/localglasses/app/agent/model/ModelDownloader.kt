@@ -25,12 +25,12 @@ class ModelDownloader(
 ) {
 
     suspend fun download(
-        manifest: ModelManifest,
+        spec: DownloadSpec,
         target: File,
         onProgress: (written: Long, total: Long) -> Unit = { _, _ -> },
     ): Result<File> = withContext(Dispatchers.IO) {
         try {
-            downloadBlocking(manifest, target, onProgress)
+            downloadBlocking(spec, target, onProgress)
             Result.success(target)
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -40,7 +40,7 @@ class ModelDownloader(
     }
 
     private suspend fun downloadBlocking(
-        manifest: ModelManifest,
+        spec: DownloadSpec,
         target: File,
         onProgress: (Long, Long) -> Unit,
     ) {
@@ -51,12 +51,12 @@ class ModelDownloader(
 
         val partial = File(target.path + PART_SUFFIX)
         var existing = if (partial.exists()) partial.length() else 0L
-        if (existing > manifest.sizeBytes) {
+        if (existing > spec.sizeBytes) {
             partial.delete()
             existing = 0L
         }
 
-        val required = (manifest.sizeBytes - existing).coerceAtLeast(0L) + FREE_SPACE_MARGIN_BYTES
+        val required = (spec.sizeBytes - existing).coerceAtLeast(0L) + FREE_SPACE_MARGIN_BYTES
         val available = freeSpace(directory)
         if (available < required) {
             throw IOException(
@@ -65,15 +65,15 @@ class ModelDownloader(
             )
         }
 
-        if (existing < manifest.sizeBytes) {
+        if (existing < spec.sizeBytes) {
             val request = Request.Builder()
-                .url(manifest.url)
+                .url(spec.url)
                 .header("Range", "bytes=$existing-")
                 .build()
 
             client.newCall(request).execute().use { response ->
                 val code = response.code
-                if (code == 416 && existing == manifest.sizeBytes) {
+                if (code == 416 && existing == spec.sizeBytes) {
                     // The partial file is already complete; verification below decides.
                 } else if (code != 200 && code != 206) {
                     throw IOException("Model download failed with HTTP $code")
@@ -95,7 +95,7 @@ class ModelDownloader(
                                 if (read < 0) break
                                 output.write(buffer, 0, read)
                                 written += read
-                                onProgress(written, manifest.sizeBytes)
+                                onProgress(written, spec.sizeBytes)
                             }
                             output.fd.sync()
                         }
@@ -104,13 +104,13 @@ class ModelDownloader(
             }
         }
 
-        if (partial.length() != manifest.sizeBytes) {
+        if (partial.length() != spec.sizeBytes) {
             throw IOException(
-                "Model size mismatch: expected ${manifest.sizeBytes}, got ${partial.length()}",
+                "Model size mismatch: expected ${spec.sizeBytes}, got ${partial.length()}",
             )
         }
 
-        if (!verify(partial, manifest.sha256)) {
+        if (!verify(partial, spec.sha256)) {
             partial.delete()
             throw IOException("Model checksum mismatch")
         }

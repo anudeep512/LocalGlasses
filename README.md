@@ -144,6 +144,37 @@ on-device.
 
 Commands are stateless: a new command starts with no history from the previous one.
 
+## Dictation
+
+The Agent tab has a **Dictate** button beside the command field. Speech recognition runs
+entirely on the phone; no audio leaves the device.
+
+1. The first tap asks for the microphone permission, then for the speech model
+   (Whisper small.en int8, ~358 MB, one-time download with checksum verification).
+2. A tap starts listening. The utterance ends on a second tap, after about 2 seconds of silence,
+   or at a 15-second cap.
+3. The final transcript replaces the command field. Submission stays an explicit **Run** tap,
+   so a misheard phrase never executes anything.
+4. A cancelled or failed dictation leaves whatever you typed untouched. Nothing is ever
+   transcribed while you type, and the assist gesture does not start the microphone.
+
+**Audio source.** Settings → Dictation chooses the phone microphone (default) or the glasses
+microphone. Glasses audio arrives as raw 16 kHz PCM over a DAT camera stream, so dictation
+opens a short glasses session and closes it when the utterance ends. That path needs DAT camera
+permission and is a **beta** DAT feature (`AudioCodec.PCM` is marked dev-and-beta only); the
+phone path works without DAT at all.
+
+**Speech metrics.** A dictated command records its model, audio source, audio duration,
+recognition latency, real-time factor, and endpoint reason in **Stats for nerds** and in the
+Stats page. Typed commands show no speech section.
+
+**Evaluation harness.** `EvaluationHarness` scores the shipping model against `name.wav` /
+`name.txt` pairs in an app-private `eval-corpus` directory and reports word error rate and
+real-time factor. Personal recordings live in `.dictation-corpus/`, which is gitignored:
+voice data is never committed.
+
+Commands are stateless: a new command starts with no history from the previous one.
+
 ## Supported actions
 
 | Action | Required access | Notes |
@@ -267,13 +298,53 @@ screen showed **Model not downloaded**, then **Model ready** after restore, and
 
 ### Inference backend
 
-**Production uses CPU only.** `LiteRtEngine` defaults to `Backend.CPU()` and
-`AgentContainer` constructs it without a backend override. GPU appears only in
-`ModelBenchmarkTest`, which explicitly creates `Backend.GPU()` for comparison. The app
-has no GPU switch.
+**Production uses the GPU, with a CPU fallback.** `AgentContainer` builds a
+`FallbackEngine` that tries `Backend.GPU()` first and loads `Backend.CPU()` only if the GPU
+backend cannot initialise (an incomplete OpenCL driver, for example). Stats for nerds reports
+the backend that actually loaded, so a silent fallback never looks like GPU.
 
-GPU token throughput is higher, but the GPU run had one tool-call parse failure on the
-YouTube prompt and reached ~88 °C. CPU is the deliberate default.
+Measured on CPH2717 (Mali-G615 MC6), Gemma 4 E2B:
+
+| Run | Engine init | Time to first token | Decode |
+|---|---|---|---|
+| First GPU load ever (OpenCL kernel compile) | 103,277 ms | — | — |
+| GPU after the cache is warm | 9,155 ms | 1,166–1,419 ms | 10.0–11.1 tok/s |
+
+The one-time ~100 s kernel compile is why the very first command after a fresh install feels
+stuck; later loads reuse the cache. GPU was previously avoided because a benchmark run reached
+~88 °C and produced one tool-call parse failure on the YouTube prompt — if long sessions get hot,
+the fallback is to construct `LiteRtEngine` with `Backend.CPU()` in `AgentContainer`.
+
+### What "Engine init" means
+
+`Engine init` in Stats for nerds is the time `Engine.initialize()` took, reported by LiteRT-LM
+as `benchmarkInfo.initTimeInSecond`. It covers:
+
+1. opening the 2.59 GB `.litertlm` file and validating it;
+2. building the compute graph for the chosen backend;
+3. backend preparation — for the GPU that means creating the OpenCL context, converting weights
+   into the layout the GPU wants, and compiling the kernels (this project's GPU cache is
+   ~780 MB of weights plus ~13 MB of compiled programs, in `files/gpu-cache`);
+4. allocating the runtime's own buffers.
+
+It is **not** per token and not per command: it happens once per engine instance, which is once
+per app process unless `MemoryGuard` releases the engine. That is why every request in the same
+session shows the same number (for example 8,748 ms) while latency and decode differ.
+
+CPU initialisation is far cheaper — roughly 0.9 s here — because it memory-maps the weights and
+computes directly, with no device context, no weight conversion, and no kernel compilation. The
+GPU pays that setup once to make prompt processing much faster:
+
+| | CPU | GPU |
+|---|---:|---:|
+| Engine init | ~0.9 s | ~9 s warm cache, ~103 s first ever |
+| Prefill | 157–477 tok/s | 536–827 tok/s |
+| Time to first token | 6.7 s | 1.8 s |
+| Decode | 2.3–10.3 tok/s | 10.0–11.1 tok/s |
+
+So GPU wins on the part before the first token, which is most of a short command, and pays for it
+in initialisation. The app hides that cost by prewarming the engine as soon as the model is
+ready, while the user is still typing.
 
 ## Verification (2026-11-11)
 

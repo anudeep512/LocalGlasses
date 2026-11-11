@@ -25,9 +25,11 @@ class RequestMetricsSession(
     fun finish(
         inference: InferenceMetrics?,
         durationMs: Long = (System.currentTimeMillis() - startedAtMs).coerceAtLeast(0L),
+        speech: SpeechMetrics? = null,
     ): RequestMetrics = RequestMetrics(
         device = latest,
         inference = inference,
+        speech = speech,
         peakAppPssBytes = peakAppPssBytes,
         peakDeviceCpuPercent = peakDeviceCpuPercent,
         peakAppCpuPercent = peakAppCpuPercent,

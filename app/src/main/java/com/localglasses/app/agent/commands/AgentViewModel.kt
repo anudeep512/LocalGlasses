@@ -23,7 +23,9 @@ import com.localglasses.app.agent.telemetry.DeviceSnapshot
 import com.localglasses.app.agent.telemetry.InferenceMetrics
 import com.localglasses.app.agent.telemetry.MetricsCollector
 import com.localglasses.app.agent.telemetry.RequestMetrics
+import com.localglasses.app.agent.telemetry.PendingSpeechMetrics
 import com.localglasses.app.agent.telemetry.RequestMetricsSession
+import com.localglasses.app.agent.telemetry.SpeechMetrics
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -74,18 +76,61 @@ class AgentViewModel @JvmOverloads constructor(
     private var activeInferenceMetrics: InferenceMetrics? = null
     private var commandStartedAtMs: Long? = null
 
+    private val pendingSpeech = PendingSpeechMetrics()
+
+    /**
+     * Metrics of the most recent dictation, published as soon as recognition finishes.
+     *
+     * The stats block shows these before the command is submitted, so the Speech Recognition
+     * section is populated the moment speech has been processed.
+     */
+    private val _lastDictationMetrics = MutableStateFlow<SpeechMetrics?>(null)
+    val lastDictationMetrics: StateFlow<SpeechMetrics?> = _lastDictationMetrics.asStateFlow()
+    private var activeSpeechMetrics: SpeechMetrics? = null
+
     init {
         viewModelScope.launch {
             modelState.collect { state ->
                 if (state == ModelState.Ready && modelStateOverride == null) {
                     AgentWarmService.start(getApplication())
+                    // Load the model while the user is still typing instead of on Run.
+                    prewarmEngine()
                 }
             }
         }
     }
 
     fun onCommandChange(value: String) {
+        pendingSpeech.onTextEdited(value)
         _uiState.update { it.copy(command = value) }
+    }
+
+    /**
+     * Applies a dictation result: the field takes the transcript and the metrics stay pending
+     * until this exact text is submitted.
+     */
+    fun onDictationFinished(transcript: String, metrics: SpeechMetrics?) {
+        if (metrics != null) _lastDictationMetrics.value = metrics
+        pendingSpeech.record(transcript, metrics)
+        _uiState.update { it.copy(command = transcript) }
+    }
+
+    /**
+     * Loads the engine in the background so the first command does not pay the whole model
+     * initialisation.
+     *
+     * GPU initialisation takes several seconds on a cold process; overlapping it with the time
+     * the user spends typing removes it from the perceived latency. Safe to call repeatedly.
+     */
+    fun prewarmEngine() {
+        if (modelState.value != ModelState.Ready) return
+        if (container.engineHolder.isLoaded) return
+        viewModelScope.launch {
+            val result = runCatching { container.engineHolder.ensureLoaded() }
+            result.getOrNull()?.exceptionOrNull()?.let { error ->
+                android.util.Log.w(TAG, "prewarm could not load the engine: ${error.message}")
+            }
+        }
     }
 
     /** The visible Agent surface owns collection and forwards each sample here. */
@@ -116,6 +161,7 @@ class AgentViewModel @JvmOverloads constructor(
         }
         _lastRequestMetrics.value = null
         activeInferenceMetrics = null
+        activeSpeechMetrics = pendingSpeech.consumeForRequest(command)
         commandStartedAtMs = System.currentTimeMillis()
         activeTraceId = container.traceRecorder.start(command)
 
@@ -436,6 +482,7 @@ class AgentViewModel @JvmOverloads constructor(
         activeTraceId = null
         activeMetricsSession = null
         activeInferenceMetrics = null
+        activeSpeechMetrics = null
         commandStartedAtMs = null
     }
 
@@ -445,7 +492,7 @@ class AgentViewModel @JvmOverloads constructor(
         val duration = startedAt?.let {
             (System.currentTimeMillis() - it).coerceAtLeast(0L)
         } ?: 0L
-        return session.finish(inference, durationMs = duration)
+        return session.finish(inference, durationMs = duration, speech = activeSpeechMetrics)
     }
 
     private fun captureFailure(traceId: String) {
@@ -465,6 +512,8 @@ class AgentViewModel @JvmOverloads constructor(
     }
 
     companion object {
+        private const val TAG = "LocalGlassesPrewarm"
+
         fun statusText(state: ModelState): String = when (state) {
             ModelState.Absent -> "Model not downloaded"
             is ModelState.Downloading -> {
