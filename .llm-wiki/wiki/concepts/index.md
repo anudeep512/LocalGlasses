@@ -11,4 +11,7 @@
 - [DAT session lifecycle](dat-session-lifecycle.md)
 - [Gemma 4 E2B on LiteRT-LM for Android](gemma-4-e2b-on-litert-lm-for-android.md)
 - [Gradle and JDK bootstrap without a system toolchain](gradle-and-jdk-bootstrap-without-a-system-toolchain.md)
+- [LiteRT-LM GPU backend and engine init](litert-lm-gpu-backend-and-engine-init.md)
+- [LocalGlasses dictation](localglasses-dictation.md)
+- [LocalGlasses stats sections](localglasses-stats-sections.md)
 - [YUV to H.264 recording on MediaTek](yuv-to-h264-recording-on-mediatek.md)

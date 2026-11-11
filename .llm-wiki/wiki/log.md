@@ -1,5 +1,17 @@
 # Wiki Update Log
 
+## 2026-11-11
+
+- **ensure\_page**: {"page_type":"concept","path":"concepts/litert-lm-gpu-backend-and-engine-init","title":"LiteRT-LM GPU backend and engine init"}
+- **ensure\_page**: {"page_type":"concept","path":"concepts/localglasses-stats-sections","title":"LocalGlasses stats sections"}
+- **ensure\_page**: {"page_type":"concept","path":"concepts/localglasses-dictation","title":"LocalGlasses dictation"}
+- **retro**: {"category":"bugfix","slug":"litert-gpu-silent-cpu-fallback-missing-cache-dir","title":"GPU slower: silent CPU fallback from missing cache dir"}
+- **observe**: {"relevance":"medium","slug":"obs-2026-11-11-conditional-silence-endpoint-contradicted-the-spec","title":"Conditional silence endpoint contradicted the spec"}
+- **retro**: {"category":"debugging","slug":"huggingface-401-means-wrong-repo-not-blocked-network","title":"HF 401 means wrong repo, not a blocked network"}
+- **observe**: {"relevance":"medium","slug":"obs-2026-11-11-openspec-change-speech-to-text-planned","title":"OpenSpec change speech-to-text planned"}
+- **retro**: {"category":"api","slug":"localglasses-dat-audio-paths","title":"DAT glasses audio: Speech vs camera PCM"}
+- **retro**: {"category":"architecture","slug":"localglasses-stt-sherpa-onnx-whisper-small","title":"LocalGlasses STT: sherpa-onnx + Whisper small.en int8"}
+
 ## 2026-11-10
 
 - **ensure\_page**: {"page_type":"concept","path":"concepts/android-agent-anr-main-thread-litert-inference","title":"Android agent ANR: main-thread LiteRT inference"}
