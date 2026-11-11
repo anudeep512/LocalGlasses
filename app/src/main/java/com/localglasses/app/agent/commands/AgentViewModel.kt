@@ -167,6 +167,7 @@ class AgentViewModel @JvmOverloads constructor(
 
         viewModelScope.launch {
             activeMetricsSession = metricsCollector.beginRequest()
+            try {
             when (val decision = router.route(command)) {
                 is RoutingDecision.Action -> {
                     activeInferenceMetrics = decision.metrics
@@ -219,7 +220,10 @@ class AgentViewModel @JvmOverloads constructor(
                             }
                         },
                         onFailure = { error ->
-                            setStatus("Could not plan: ${error.message}")
+                            setStatus(
+                                "Could not build a plan for that request. " +
+                                    "Try rephrasing or splitting it into two steps.",
+                            )
                             finishActiveTrace(
                                 command, "ui_plan", decision.app, "failed", error.message,
                             )
@@ -279,7 +283,12 @@ class AgentViewModel @JvmOverloads constructor(
                     setStatus("Failed: ${decision.reason}")
                 }
             }
-            _uiState.update { it.copy(isSubmitting = false) }
+            } finally {
+                // Every exit path clears the flag, including the early returns for a missing
+                // accessibility service or a rejected plan. Leaving it set disabled Run and
+                // Dictate until the app was restarted.
+                _uiState.update { it.copy(isSubmitting = false) }
+            }
         }
     }
 
@@ -505,13 +514,19 @@ class AgentViewModel @JvmOverloads constructor(
             .capture("$traceId.png")
     }
 
-    /** Status is text only. The app never speaks; voice output was removed. */
+    /**
+     * Status is text only. The app never speaks; voice output was removed.
+     *
+     * The text is clamped to one short line: a native runtime error used to be printed in full
+     * and filled the screen with parser internals. The detail still reaches the trace.
+     */
     private fun setStatus(message: String) {
-        _uiState.update { it.copy(status = message) }
+        _uiState.update { it.copy(status = StatusText.shorten(message)) }
     }
 
     companion object {
         private const val TAG = "LocalGlassesPrewarm"
+
 
         fun statusText(state: ModelState): String = when (state) {
             ModelState.Absent -> "Model not downloaded"

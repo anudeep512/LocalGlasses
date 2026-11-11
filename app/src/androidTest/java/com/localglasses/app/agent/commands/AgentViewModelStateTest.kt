@@ -19,7 +19,10 @@ import com.localglasses.app.agent.telemetry.MetricsSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -231,5 +234,29 @@ class AgentViewModelStateTest {
         // A cancelled or failed dictation never calls onDictationFinished.
         assertEquals("call Amma", viewModel.uiState.value.command)
         assertEquals(false, viewModel.uiState.value.isSubmitting)
+    }
+
+    @Test
+    fun aUiTaskBlockedOnAccessibilityReleasesTheSubmittingFlag() = runBlocking {
+        val viewModel = viewModel(
+            reply = InferenceReply(
+                "",
+                listOf(InferenceToolCall("plan_ui_task", mapOf("goal" to "open WhatsApp"))),
+            ),
+            accessibility = false,
+        )
+
+        viewModel.onCommandChange("open WhatsApp")
+        viewModel.submit()
+
+        // The router runs on its own dispatcher, so wait for the state rather than for the
+        // test scheduler. An early return used to leave isSubmitting set, which disabled Run
+        // and Dictate until the app was restarted.
+        withTimeout(15_000) {
+            viewModel.uiState.first { !it.isSubmitting }
+        }
+
+        assertEquals(false, viewModel.uiState.value.isSubmitting)
+        assertTrue(viewModel.uiState.value.status.isNotBlank())
     }
 }

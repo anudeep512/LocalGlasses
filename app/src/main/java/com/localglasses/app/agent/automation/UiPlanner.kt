@@ -7,6 +7,8 @@ import com.localglasses.app.agent.approval.Plan
 import com.localglasses.app.agent.approval.PlanStep
 import com.localglasses.app.agent.approval.PlanValidator
 import com.localglasses.app.agent.model.EngineHolder
+import com.localglasses.app.agent.model.InferenceEngine
+import com.localglasses.app.agent.model.InferenceReply
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,20 +20,25 @@ class UiPlanner(
 
     suspend fun plan(command: String, goal: String, app: String?): Result<Plan> {
         val engine = engineHolder.ensureLoaded().getOrElse { return Result.failure(it) }
+        val request = "Command: $command\nGoal: $goal\nTarget package: ${app ?: "current app"}"
+
         val reply = try {
-            withContext(inferenceDispatcher) {
-                engine.conversation(
-                    systemPrompt = SYSTEM_PROMPT,
-                    tools = listOf(tool(SubmitPlanTool())),
-                    automaticToolCalling = false,
-                ).use { conversation ->
-                    conversation.send(
-                        "Command: $command\nGoal: $goal\nTarget package: ${app ?: "current app"}",
-                    )
-                }
-            }
+            ask(engine, request)
         } catch (error: Exception) {
-            return Result.failure(error)
+            // The model sometimes emits a malformed tool call (observed as literal <"|> tokens
+            // instead of quotes), which the runtime refuses to parse. One corrective retry is
+            // cheaper than failing the command, and a second failure is reported plainly.
+            try {
+                ask(engine, "$request\n\nReturn exactly one submit_plan tool call with plain " +
+                    "JSON. Do not wrap it in prose or code fences.")
+            } catch (retryError: Exception) {
+                return Result.failure(
+                    IllegalStateException(
+                        "The model returned an unreadable plan. Try rephrasing.",
+                        retryError,
+                    ),
+                )
+            }
         }
 
         val call = reply.toolCalls.singleOrNull()
@@ -40,6 +47,15 @@ class UiPlanner(
             ?: return Result.failure(IllegalStateException("Planner returned no valid steps"))
         return PlanValidator.validate(Plan(command = command, steps = steps, targetPackage = app))
     }
+
+    private suspend fun ask(engine: InferenceEngine, request: String): InferenceReply =
+        withContext(inferenceDispatcher) {
+            engine.conversation(
+                systemPrompt = SYSTEM_PROMPT,
+                tools = listOf(tool(SubmitPlanTool())),
+                automaticToolCalling = false,
+            ).use { conversation -> conversation.send(request) }
+        }
 
     private fun parseSteps(raw: Any?): List<PlanStep>? {
         val list = raw as? List<*> ?: return null
